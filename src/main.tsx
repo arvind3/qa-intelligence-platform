@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import ReactECharts from 'echarts-for-react'
 import Papa from 'papaparse'
 import { computeKpis } from './analytics'
-import { askCopilot, initReasoningEngine } from './copilot'
+import { askCopilot, initReasoningEngine, isReasoningReady } from './copilot'
 import { loadTestsToDuckDB, queryDashboardStats } from './duckdb'
 import { initEmbeddingModel, embedText } from './embeddings'
 import { generateSyntheticTests } from './synthetic'
@@ -14,17 +14,17 @@ import { SqliteVecStore } from './sqliteVecStore'
 const store = new SqliteVecStore()
 
 const KPI_HELP: Record<string, string> = {
-  'Total Tests': `Concept: Number of test cases currently loaded in this workspace.\n\nTechnical: Simple row count from the canonical test-case table.\n\nBusiness value: Helps stakeholders confirm scope and confidence level of the analysis before interpreting advanced KPIs.`,
-  'Exact Duplicate Groups': `Concept: Tests that are literal copies of each other.\n\nTechnical: Title + description + steps normalize to identical text key and are grouped.\n\nBusiness value: Indicates immediate cleanup opportunities that reduce suite cost without coverage loss.`,
-  'Near Duplicate Groups': `Concept: Tests that are different text, but same intent.\n\nTechnical: Semantic clustering and near-neighbor logic over embeddings identifies high-overlap families.\n\nBusiness value: Reveals hidden waste that normal text matching misses, improving regression efficiency.`,
-  'Redundancy Score': `Concept: Overall repetition pressure in the suite.\n\nTechnical: Combined signal from exact + near-duplicate membership against total population.\n\nBusiness value: Higher redundancy means longer execution cycles, slower releases, and higher maintenance spend.`,
-  'Entropy Score': `Concept: Diversity of test intent across the portfolio.\n\nTechnical: Normalized Shannon entropy on feature-intent distribution.\n\nBusiness value: Low entropy suggests concentration risk (over-testing some areas, under-testing others). High entropy signals healthier risk distribution.`,
-  'Orphan Tag Ratio': `Concept: Tests with missing, inconsistent, or non-standard tags.\n\nTechnical: Rule-based detection for empty tags, casing mismatches, and taxonomy drift.\n\nBusiness value: High orphan ratio reduces traceability, ownership clarity, and governance quality for large QA programs.`,
+  'Total Tests': `Concept: Number of test cases currently loaded in this workspace.\n\nTechnical: Simple row count from the canonical test-case table.\n\nDeterministic vs Non-deterministic: Deterministic (program logic only).\n\nBusiness value: Helps stakeholders confirm scope and confidence level of the analysis before interpreting advanced KPIs.`,
+  'Exact Duplicate Groups': `Concept: Tests that are literal copies of each other.\n\nTechnical: Title + description + steps normalize to identical text key and are grouped.\n\nDeterministic vs Non-deterministic: Deterministic (program logic only).\n\nBusiness value: Indicates immediate cleanup opportunities that reduce suite cost without coverage loss.`,
+  'Near Duplicate Groups': `Concept: Tests that are different text, but same intent.\n\nTechnical: Semantic clustering and near-neighbor logic over embeddings identifies high-overlap families.\n\nDeterministic vs Non-deterministic: Non-deterministic (LLM/embedding-assisted semantic meaning).\n\nBusiness value: Reveals hidden waste that normal text matching misses, improving regression efficiency.`,
+  'Redundancy Score': `Concept: Overall repetition pressure in the suite.\n\nTechnical: Combined signal from exact + near-duplicate membership against total population.\n\nDeterministic vs Non-deterministic: Hybrid (deterministic exact duplicates + non-deterministic semantic duplicates).\n\nBusiness value: Higher redundancy means longer execution cycles, slower releases, and higher maintenance spend.`,
+  'Entropy Score': `Concept: Diversity of test intent across the portfolio.\n\nTechnical: Normalized Shannon entropy on feature-intent distribution.\n\nDeterministic vs Non-deterministic: Deterministic for score math; interpretation can be LLM-assisted.\n\nBusiness value: Low entropy suggests concentration risk (over-testing some areas, under-testing others). High entropy signals healthier risk distribution.`,
+  'Orphan Tag Ratio': `Concept: Tests with missing, inconsistent, or non-standard tags.\n\nTechnical: Rule-based detection for empty tags, casing mismatches, and taxonomy drift.\n\nDeterministic vs Non-deterministic: Deterministic for detection; LLM may assist remediation suggestions.\n\nBusiness value: High orphan ratio reduces traceability, ownership clarity, and governance quality for large QA programs.`,
 }
 
 const CHART_HELP: Record<string, string> = {
-  'Semantic Cluster Map': `Concept: Visual map of semantic test families.\n\nTechnical: Each bubble represents a cluster of similar embeddings; larger bubble = larger family.\n\nBusiness value: Helps leadership quickly see duplication hotspots and prioritize consolidation waves.`,
-  'Suite Distribution (DuckDB)': `Concept: Distribution of tests across suites.\n\nTechnical: DuckDB aggregation of test counts by suite ID.\n\nBusiness value: Detects imbalance and potential blind spots; supports rational rebalancing of QA investment.`,
+  'Semantic Cluster Map': `Concept: Visual map of semantic test families.\n\nTechnical: Each bubble represents a cluster of similar embeddings; larger bubble = larger family.\n\nDeterministic vs Non-deterministic: Non-deterministic (LLM/embedding-assisted grouping).\n\nBusiness value: Helps leadership quickly see duplication hotspots and prioritize consolidation waves.`,
+  'Suite Distribution (DuckDB)': `Concept: Distribution of tests across suites.\n\nTechnical: DuckDB aggregation of test counts by suite ID.\n\nDeterministic vs Non-deterministic: Deterministic (programmatic aggregation).\n\nBusiness value: Detects imbalance and potential blind spots; supports rational rebalancing of QA investment.`,
 }
 
 const SAMPLE_QUESTIONS = [
@@ -159,6 +159,19 @@ function App() {
     const targetRows = buildMode === 'quick' ? rows.slice(0, Math.min(rows.length, 2000)) : rows
     setEmbStatus(`Initializing embedding + sqlite-vec index (${buildMode.toUpperCase()} mode, ${targetRows.length.toLocaleString()} tests)...`)
 
+    if (!isReasoningReady()) {
+      setLlmStatus('Initializing local LLM (required for semantic KPIs)...')
+      try {
+        const llmMode = await initReasoningEngine()
+        setLlmStatus(`Copilot mode: ${llmMode}`)
+      } catch (err: any) {
+        setEmbStatus('Semantic build blocked: local LLM is required but failed to initialize.')
+        setLlmStatus(String(err?.message || err))
+        setIsBuildingSemantic(false)
+        return
+      }
+    }
+
     const mode = await initEmbeddingModel()
 
     const chunkSize = buildMode === 'quick' ? 120 : 80
@@ -227,7 +240,11 @@ function App() {
 
   const onInitLlm = async () => {
     setLlmStatus('Initializing QA Copilot...')
-    setLlmStatus(`Copilot mode: ${await initReasoningEngine()}`)
+    try {
+      setLlmStatus(`Copilot mode: ${await initReasoningEngine()}`)
+    } catch (err: any) {
+      setLlmStatus(String(err?.message || err))
+    }
   }
 
   const onAsk = async () => {
@@ -242,7 +259,11 @@ function App() {
     if (!context.length) context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
     if (!context.length) context = rows.slice(0, 10)
 
-    setAnswer(await askCopilot(question, context))
+    try {
+      setAnswer(await askCopilot(question, context))
+    } catch (err: any) {
+      setAnswer(String(err?.message || err))
+    }
   }
 
   const downloadKpiMatching = (label: string) => {

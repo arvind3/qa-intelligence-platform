@@ -12,15 +12,13 @@ const context = [
 ]
 
 describe('LLM evaluation strategy (evil/eval)', () => {
-  it('returns actionable duplicate guidance', async () => {
-    const q = 'Find duplicate tests and suggest consolidation'
-    const answer = await askCopilot(q, context as any)
-    expect(answer.toLowerCase()).toContain('duplicate')
+  it('enforces local LLM initialization before answering', async () => {
+    await expect(askCopilot('Find duplicate tests and suggest consolidation', context as any))
+      .rejects.toThrow(/copilot-not-initialized/i)
   })
 
-  it('returns coverage guidance for gap question', async () => {
-    const q = 'Where is our coverage gap?'
-    const answer = await askCopilot(q, context as any)
-    expect(answer.toLowerCase()).toContain('coverage')
+  it('documents no-template-fallback policy', async () => {
+    await expect(askCopilot('Where is our coverage gap?', context as any))
+      .rejects.toThrow(/local in-browser LLM required/i)
   })
 })
