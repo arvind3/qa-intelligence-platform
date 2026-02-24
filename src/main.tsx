@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import ReactECharts from 'echarts-for-react'
 import Papa from 'papaparse'
 import { computeKpis } from './analytics'
-import { askCopilot, initReasoningEngine, isReasoningReady } from './copilot'
+import { askCopilot, getReasoningMode, initReasoningEngine, isReasoningReady } from './copilot'
 import { loadTestsToDuckDB, queryDashboardStats } from './duckdb'
 import { initEmbeddingModel, embedText } from './embeddings'
 import { generateSyntheticTests } from './synthetic'
@@ -104,6 +104,7 @@ function App() {
   const cancelBuildRef = useRef(false)
 
   const kpis = useMemo(() => computeKpis(rows), [rows])
+  const runtimeMode = getReasoningMode()
 
   const kpiItems = [
     { label: 'Total Tests', value: kpis.totalTests.toLocaleString() },
@@ -374,6 +375,10 @@ function App() {
       </div>
 
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 6, padding: '6px 10px', border: '1px solid #324978', borderRadius: 999, background: '#111c34', color: '#c7d8fa', fontSize: 12 }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: runtimeMode.startsWith('webgpu') ? '#39d98a' : runtimeMode.startsWith('cpu-wasm') ? '#f0c14b' : '#f36f6f' }} />
+        Copilot Runtime: {runtimeMode}
+      </div>
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{embStatus}</div>
       {isBuildingSemantic && (
         <div style={{ marginBottom: 10, width: '100%', maxWidth: 560, height: 10, background: '#1a2742', borderRadius: 999, overflow: 'hidden', border: '1px solid #324978' }}>
