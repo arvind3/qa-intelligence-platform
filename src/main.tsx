@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import ReactECharts from 'echarts-for-react'
 import Papa from 'papaparse'
 import { computeKpis } from './analytics'
 import { askCopilot, initReasoningEngine } from './copilot'
 import { loadTestsToDuckDB, queryDashboardStats } from './duckdb'
-import { embedTests, initEmbeddingModel, embedText } from './embeddings'
+import { initEmbeddingModel, embedText } from './embeddings'
 import { generateSyntheticTests } from './synthetic'
 import type { TestCaseRow } from './types'
 import { clusterByThreshold } from './vector'
@@ -69,6 +69,10 @@ function App() {
   const [question, setQuestion] = useState('What duplicate families should we consolidate first?')
   const [answer, setAnswer] = useState('')
   const [openHelp, setOpenHelp] = useState<string | null>(null)
+  const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
+  const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
+  const [buildProgress, setBuildProgress] = useState(0)
+  const cancelBuildRef = useRef(false)
 
   const kpis = useMemo(() => computeKpis(rows), [rows])
 
@@ -120,10 +124,38 @@ function App() {
   }
 
   const onBuildSemantic = async () => {
-    if (!rows.length) return
-    setEmbStatus('Initializing embedding + sqlite-vec index...')
+    if (!rows.length || isBuildingSemantic) return
+    setIsBuildingSemantic(true)
+    cancelBuildRef.current = false
+    setBuildProgress(0)
+
+    const targetRows = buildMode === 'quick' ? rows.slice(0, Math.min(rows.length, 2000)) : rows
+    setEmbStatus(`Initializing embedding + sqlite-vec index (${buildMode.toUpperCase()} mode, ${targetRows.length.toLocaleString()} tests)...`)
+
     const mode = await initEmbeddingModel()
-    const vectors = await embedTests(rows)
+    const vectors: any[] = []
+    const chunkSize = buildMode === 'quick' ? 120 : 80
+
+    for (let i = 0; i < targetRows.length; i += chunkSize) {
+      if (cancelBuildRef.current) {
+        setEmbStatus(`Semantic build cancelled at ${buildProgress}%`) 
+        setIsBuildingSemantic(false)
+        return
+      }
+      const batch = targetRows.slice(i, i + chunkSize)
+      const batchVecs = await Promise.all(
+        batch.map(async (row) => {
+          const text = `${row.title}. ${row.description}. Steps: ${row.steps}. Tags: ${(row.tags || []).join(', ')}`
+          const vec = await embedText(text)
+          return { id: row.test_case_id, text, vec, meta: row }
+        }),
+      )
+      vectors.push(...batchVecs)
+      const pct = Math.round((vectors.length / targetRows.length) * 100)
+      setBuildProgress(pct)
+      setEmbStatus(`Embedding progress: ${pct}% (${vectors.length.toLocaleString()}/${targetRows.length.toLocaleString()})`)
+      await new Promise((r) => setTimeout(r, 0))
+    }
 
     const vecReady = await store.init()
     let indexMode = 'in-memory fallback'
@@ -135,6 +167,11 @@ function App() {
     const c = clusterByThreshold(vectors, 0.9)
     setClusters(c)
     setEmbStatus(`Embeddings ready (${mode}) · index: ${indexMode} · ${vectors.length.toLocaleString()} vectors · ${c.length} clusters`)
+    setIsBuildingSemantic(false)
+  }
+
+  const onCancelSemanticBuild = () => {
+    cancelBuildRef.current = true
   }
 
   const onInitLlm = async () => {
@@ -168,12 +205,26 @@ function App() {
         <button onClick={onGenerate} style={btn('#2a6cff')}>Generate 10,000 High-Quality Tests</button>
         <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
         <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Generated Tests</button>
-        <button onClick={onBuildSemantic} style={btn('#11856b')}>Build Embeddings + Clusters</button>
+
+        <div style={{ display: 'inline-flex', border: '1px solid #3a5388', borderRadius: 10, overflow: 'hidden' }}>
+          <button onClick={() => setBuildMode('quick')} style={{ ...btn(buildMode === 'quick' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Quick (2k)</button>
+          <button onClick={() => setBuildMode('full')} style={{ ...btn(buildMode === 'full' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Full (10k)</button>
+        </div>
+
+        <button onClick={onBuildSemantic} disabled={isBuildingSemantic} style={btn('#11856b', isBuildingSemantic)}>
+          {isBuildingSemantic ? `Building... ${buildProgress}%` : 'Build Embeddings + Clusters'}
+        </button>
+        <button onClick={onCancelSemanticBuild} disabled={!isBuildingSemantic} style={btn('#9a3240', !isBuildingSemantic)}>Cancel Build</button>
         <button onClick={onInitLlm} style={btn('#6f51ff')}>Initialize QA Copilot</button>
       </div>
 
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{embStatus}</div>
+      {isBuildingSemantic && (
+        <div style={{ marginBottom: 10, width: '100%', maxWidth: 560, height: 10, background: '#1a2742', borderRadius: 999, overflow: 'hidden', border: '1px solid #324978' }}>
+          <div style={{ width: `${buildProgress}%`, height: '100%', background: 'linear-gradient(90deg,#2ccf8f,#4ad0ff)' }} />
+        </div>
+      )}
       <div style={{ color: '#95aedf', marginBottom: 14 }}>{llmStatus}</div>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
