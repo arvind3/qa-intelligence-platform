@@ -99,6 +99,7 @@ function App() {
   const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
   const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
   const [buildProgress, setBuildProgress] = useState(0)
+  const [semanticReady, setSemanticReady] = useState(false)
   const [semanticVectors, setSemanticVectors] = useState<any[]>([])
   const [popup, setPopup] = useState<{ title: string; body: string } | null>(null)
   const cancelBuildRef = useRef(false)
@@ -107,12 +108,12 @@ function App() {
   const runtimeMode = getReasoningMode()
 
   const kpiItems = [
-    { label: 'Total Tests', value: kpis.totalTests.toLocaleString() },
-    { label: 'Exact Duplicate Groups', value: kpis.exactDuplicateGroups },
-    { label: 'Near Duplicate Groups', value: kpis.nearDuplicateGroups },
-    { label: 'Redundancy Score', value: `${kpis.redundancyScore}%` },
-    { label: 'Entropy Score', value: `${kpis.entropyScore}%` },
-    { label: 'Orphan Tag Ratio', value: `${kpis.orphanTagRatio}%` },
+    { label: 'Total Tests', value: kpis.totalTests.toLocaleString(), type: 'deterministic' as const },
+    { label: 'Exact Duplicate Groups', value: kpis.exactDuplicateGroups, type: 'deterministic' as const },
+    { label: 'Near Duplicate Groups', value: semanticReady ? kpis.nearDuplicateGroups : '—', type: 'semantic' as const },
+    { label: 'Redundancy Score', value: semanticReady ? `${kpis.redundancyScore}%` : '—', type: 'hybrid' as const },
+    { label: 'Entropy Score', value: `${kpis.entropyScore}%`, type: 'deterministic' as const },
+    { label: 'Orphan Tag Ratio', value: `${kpis.orphanTagRatio}%`, type: 'deterministic' as const },
   ]
 
   const clusterChartOption = useMemo(() => {
@@ -135,6 +136,9 @@ function App() {
 
   const loadRows = async (data: TestCaseRow[], source: string) => {
     setRows(data)
+    setSemanticReady(false)
+    setClusters([])
+    setSemanticVectors([])
     setStatus(`Loaded ${data.length.toLocaleString()} tests from ${source}`)
     await loadTestsToDuckDB(data)
     setSuiteDist((await queryDashboardStats()).suiteDist)
@@ -156,6 +160,7 @@ function App() {
   const onBuildSemantic = async () => {
     if (!rows.length || isBuildingSemantic) return
     setIsBuildingSemantic(true)
+    setSemanticReady(false)
     cancelBuildRef.current = false
     setBuildProgress(0)
 
@@ -230,6 +235,7 @@ function App() {
     const c = clusterByThreshold(vectors, 0.9)
     setClusters(c)
     setSemanticVectors(vectors)
+    setSemanticReady(true)
     setEmbStatus(`Embeddings ready (${mode}) · index: ${indexMode} · ${vectors.length.toLocaleString()} vectors · ${c.length} clusters`)
     setIsBuildingSemantic(false)
   }
@@ -388,16 +394,23 @@ function App() {
       <div style={{ color: '#95aedf', marginBottom: 14 }}>{llmStatus}</div>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
-        {kpiItems.map((k) => (
+        {kpiItems.map((k) => {
+          const pending = !semanticReady && (k.label === 'Near Duplicate Groups' || k.label === 'Redundancy Score')
+          const modeLabel = k.type === 'deterministic' ? 'Deterministic' : k.type === 'semantic' ? 'Semantic' : 'Hybrid'
+          return (
           <div key={k.label} style={{ background: 'linear-gradient(165deg, #121d34, #101a2f)', border: '1px solid #30446f', borderRadius: 14, padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ color: '#a8bce8', fontSize: 12, fontWeight: 700 }}>{k.label}</div>
               <button onClick={() => setPopup({ title: k.label, body: KPI_HELP[k.label] })} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #4a6396', background: '#1a2b4f', color: '#d8e6ff', cursor: 'pointer', fontWeight: 700 }}>i</button>
             </div>
             <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>{k.value}</div>
-            <button onClick={() => downloadKpiMatching(k.label)} style={{ ...btn('#243f73'), marginTop: 8, width: '100%' }}>Download matching tests</button>
+            <div style={{ display:'flex', gap:6, marginTop:6 }}>
+              <span style={{ fontSize:11, padding:'2px 7px', border:'1px solid #3a5388', borderRadius:999, color:'#b7c9ef' }}>{modeLabel}</span>
+              <span style={{ fontSize:11, padding:'2px 7px', border:'1px solid #3a5388', borderRadius:999, color: pending ? '#ffd28a' : '#97e5b2' }}>{pending ? 'Pending Semantic Build' : 'Ready'}</span>
+            </div>
+            <button disabled={pending} onClick={() => downloadKpiMatching(k.label)} style={{ ...btn('#243f73', pending), marginTop: 8, width: '100%' }}>Download matching tests</button>
           </div>
-        ))}
+        )})}
       </section>
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
