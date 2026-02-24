@@ -13,12 +13,12 @@ import { clusterByThreshold, LocalVectorStore } from './vector'
 const store = new LocalVectorStore()
 
 const KPI_HELP: Record<string, string> = {
-  'Total Tests': 'Total number of test cases currently loaded into the platform.',
-  'Exact Duplicate Groups': 'Groups of test cases that are exactly the same in title, description, and steps.',
-  'Near Duplicate Groups': 'Groups of test cases that are very similar in meaning but not exact text copies.',
-  'Redundancy Score': 'Higher score means more repeated test intent across the suite (more cleanup opportunity).',
-  'Entropy Score': 'Higher score means better diversity across features and test intent (healthier suite spread).',
-  'Orphan Tag Ratio': 'Percentage of tests with missing/inconsistent tags, which hurts discoverability and governance.',
+  'Total Tests': 'Total number of test cases currently loaded.',
+  'Exact Duplicate Groups': 'Identical tests (same title + description + steps).',
+  'Near Duplicate Groups': 'Semantically similar tests that likely overlap in intent.',
+  'Redundancy Score': 'Higher means more repeated coverage and better consolidation opportunity.',
+  'Entropy Score': 'Higher means better diversity of test intent across features.',
+  'Orphan Tag Ratio': 'Share of tests with missing or inconsistent tags.',
 }
 
 function parseJson(text: string): TestCaseRow[] {
@@ -48,31 +48,24 @@ function parseCsv(text: string): TestCaseRow[] {
   }))
 }
 
-function KpiCard({ label, value, help, open, onToggle }: { label: string; value: string | number; help: string; open: boolean; onToggle: () => void }) {
-  return (
-    <div style={{ background: 'linear-gradient(165deg, #121d34, #101a2f)', border: '1px solid #30446f', borderRadius: 14, padding: 14, position: 'relative', boxShadow: '0 10px 26px rgba(0,0,0,0.2)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ color: '#a8bce8', fontSize: 12, fontWeight: 700, letterSpacing: '.02em' }}>{label}</div>
-        <button onClick={onToggle} aria-label={`Explain ${label}`} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #4a6396', background: '#1a2b4f', color: '#d8e6ff', cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>i</button>
-      </div>
-      <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8, lineHeight: 1.1 }}>{value}</div>
-      {open && (
-        <div style={{ marginTop: 10, fontSize: 12, color: '#bdd0f7', background: '#0b1530', border: '1px solid #2f446f', borderRadius: 10, padding: 10 }}>
-          {help}
-        </div>
-      )}
-    </div>
-  )
+function downloadJson(rows: TestCaseRow[]) {
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `generated_testcases_${rows.length}.json`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 function App() {
   const [rows, setRows] = useState<TestCaseRow[]>([])
   const [status, setStatus] = useState('No dataset loaded')
-  const [embStatus, setEmbStatus] = useState('idle')
-  const [llmStatus, setLlmStatus] = useState('idle')
+  const [embStatus, setEmbStatus] = useState('Not built')
+  const [llmStatus, setLlmStatus] = useState('Not initialized')
   const [clusters, setClusters] = useState<any[]>([])
   const [suiteDist, setSuiteDist] = useState<any[]>([])
-  const [question, setQuestion] = useState('What duplicates should be consolidated first?')
+  const [question, setQuestion] = useState('What duplicate families should we consolidate first?')
   const [answer, setAnswer] = useState('')
   const [openHelp, setOpenHelp] = useState<string | null>(null)
 
@@ -88,32 +81,28 @@ function App() {
   ]
 
   const clusterChartOption = useMemo(() => {
-    const points = clusters.slice(0, 20).map((c: any, i: number) => [i, c.length, c[0]?.meta?.title || ''])
+    const points = clusters.slice(0, 24).map((c: any, i: number) => [i, c.length, c[0]?.meta?.title || ''])
     return {
       backgroundColor: 'transparent',
-      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster Index', nameTextStyle: { color: '#8ca4d4' } },
-      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster Size', nameTextStyle: { color: '#8ca4d4' } },
+      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster', nameTextStyle: { color: '#8ca4d4' } },
+      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Size', nameTextStyle: { color: '#8ca4d4' } },
       tooltip: { formatter: (p: any) => `Cluster ${p.data[0]}<br/>Size: ${p.data[1]}<br/>${p.data[2]}` },
-      series: [{ type: 'scatter', symbolSize: (v: any) => Math.max(10, Math.min(42, v[1] * 1.2)), data: points, itemStyle: { color: '#56d9ff' } }],
+      series: [{ type: 'scatter', symbolSize: (v: any) => Math.max(10, Math.min(44, v[1] * 1.3)), data: points, itemStyle: { color: '#57d9ff' } }],
     }
   }, [clusters])
 
-  const suiteChartOption = useMemo(
-    () => ({
-      backgroundColor: 'transparent',
-      xAxis: { type: 'category', data: suiteDist.map((r: any) => r.test_suite_id), axisLabel: { color: '#a4bbec' } },
-      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
-      series: [{ type: 'bar', data: suiteDist.map((r: any) => Number(r.c)), itemStyle: { color: '#6d8eff' }, barMaxWidth: 28 }],
-    }),
-    [suiteDist],
-  )
+  const suiteChartOption = useMemo(() => ({
+    backgroundColor: 'transparent',
+    xAxis: { type: 'category', data: suiteDist.map((r: any) => r.test_suite_id), axisLabel: { color: '#a4bbec' } },
+    yAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
+    series: [{ type: 'bar', data: suiteDist.map((r: any) => Number(r.c)), itemStyle: { color: '#6d8eff' }, barMaxWidth: 24 }],
+  }), [suiteDist])
 
   const loadRows = async (data: TestCaseRow[], source: string) => {
     setRows(data)
     setStatus(`Loaded ${data.length.toLocaleString()} tests from ${source}`)
     await loadTestsToDuckDB(data)
-    const stats = await queryDashboardStats()
-    setSuiteDist(stats.suiteDist)
+    setSuiteDist((await queryDashboardStats()).suiteDist)
   }
 
   const onGenerate = async () => loadRows(generateSyntheticTests(10000), 'synthetic generator')
@@ -123,8 +112,7 @@ function App() {
     if (!file) return
     try {
       const text = await file.text()
-      const parsed = file.name.endsWith('.csv') ? parseCsv(text) : parseJson(text)
-      await loadRows(parsed, file.name)
+      await loadRows(file.name.endsWith('.csv') ? parseCsv(text) : parseJson(text), file.name)
     } catch (err) {
       setStatus(`Upload failed: ${(err as Error).message}`)
     }
@@ -132,20 +120,18 @@ function App() {
 
   const onBuildSemantic = async () => {
     if (!rows.length) return
-    setEmbStatus('initializing embedding model...')
+    setEmbStatus('Initializing embedding model...')
     const mode = await initEmbeddingModel()
-    setEmbStatus(`embedding mode: ${mode}; embedding ${rows.length.toLocaleString()} tests...`)
     const vectors = await embedTests(rows)
     store.upsert(vectors)
     const c = clusterByThreshold(vectors, 0.9)
     setClusters(c)
-    setEmbStatus(`done: ${vectors.length.toLocaleString()} vectors, ${c.length} semantic clusters`)
+    setEmbStatus(`Embeddings ready (${mode}) · ${vectors.length.toLocaleString()} vectors · ${c.length} clusters`)
   }
 
   const onInitLlm = async () => {
-    setLlmStatus('initializing reasoning engine...')
-    const mode = await initReasoningEngine()
-    setLlmStatus(`reasoning mode: ${mode}`)
+    setLlmStatus('Initializing QA Copilot...')
+    setLlmStatus(`Copilot mode: ${await initReasoningEngine()}`)
   }
 
   const onAsk = async () => {
@@ -154,50 +140,76 @@ function App() {
   }
 
   return (
-    <main style={{ fontFamily: 'Segoe UI Variable, Segoe UI, sans-serif', padding: 24, background: 'radial-gradient(circle at 10% 0%, #13244d, #0b1220 42%)', color: '#e8f0ff', minHeight: '100vh' }}>
-      <h1 style={{ marginTop: 0, fontSize: 34 }}>Test Case Intelligence Platform</h1>
-      <p style={{ color: '#a7bde9', maxWidth: 980, marginTop: -4 }}>
-        Browser-only QA intelligence platform with KPI storytelling, semantic understanding, and local reasoning.
+    <main style={{ fontFamily: 'Segoe UI Variable, Segoe UI, sans-serif', padding: 24, background: 'radial-gradient(circle at 15% 0%, #12244f, #0a1220 45%)', color: '#e8f0ff', minHeight: '100vh' }}>
+      <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 34 }}>Test Case Intelligence Platform</h1>
+      <p style={{ marginTop: 0, color: '#abc0ea', maxWidth: 980 }}>
+        Upload or generate test cases, analyze quality KPIs, build semantic clusters, and ask Copilot for actionable guidance.
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <button onClick={onGenerate} style={{ background: '#2a6cff', color: '#fff', border: 0, borderRadius: 10, padding: '10px 14px', fontWeight: 700, cursor: 'pointer' }}>Generate 10,000 Synthetic Tests</button>
-        <label style={{ border: '1px solid #3a5388', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', background: '#132346' }}>Upload JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
-        <button onClick={onBuildSemantic} style={{ background: '#11856b', color: '#fff', border: 0, borderRadius: 10, padding: '10px 14px', fontWeight: 700, cursor: 'pointer' }}>Build Embeddings + Clusters</button>
-        <button onClick={onInitLlm} style={{ background: '#6f51ff', color: '#fff', border: 0, borderRadius: 10, padding: '10px 14px', fontWeight: 700, cursor: 'pointer' }}>Initialize QA Copilot Engine</button>
+        <button onClick={onGenerate} style={btn('#2a6cff')}>Generate 10,000 High-Quality Tests</button>
+        <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
+        <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Generated Tests</button>
+        <button onClick={onBuildSemantic} style={btn('#11856b')}>Build Embeddings + Clusters</button>
+        <button onClick={onInitLlm} style={btn('#6f51ff')}>Initialize QA Copilot</button>
       </div>
 
-      <div style={{ color: '#95aedf', marginBottom: 8 }}>{status}</div>
-      <div style={{ color: '#95aedf', marginBottom: 6 }}>{embStatus}</div>
-      <div style={{ color: '#95aedf', marginBottom: 16 }}>{llmStatus}</div>
+      <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
+      <div style={{ color: '#95aedf', marginBottom: 4 }}>{embStatus}</div>
+      <div style={{ color: '#95aedf', marginBottom: 14 }}>{llmStatus}</div>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(235px, 1fr))', gap: 12 }}>
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
         {kpiItems.map((k) => (
-          <KpiCard key={k.label} label={k.label} value={k.value} help={KPI_HELP[k.label]} open={openHelp === k.label} onToggle={() => setOpenHelp(openHelp === k.label ? null : k.label)} />
+          <div key={k.label} style={{ background: 'linear-gradient(165deg, #121d34, #101a2f)', border: '1px solid #30446f', borderRadius: 14, padding: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ color: '#a8bce8', fontSize: 12, fontWeight: 700 }}>{k.label}</div>
+              <button onClick={() => setOpenHelp(openHelp === k.label ? null : k.label)} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #4a6396', background: '#1a2b4f', color: '#d8e6ff', cursor: 'pointer', fontWeight: 700 }}>i</button>
+            </div>
+            <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>{k.value}</div>
+            {openHelp === k.label && <div style={{ marginTop: 8, fontSize: 12, color: '#bdd0f7', background: '#0b1530', border: '1px solid #2f446f', borderRadius: 10, padding: 10 }}>{KPI_HELP[k.label]}</div>}
+          </div>
         ))}
       </section>
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div style={{ background: '#121a2d', border: '1px solid #2a3b62', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Semantic Cluster Map</h3>
-          <ReactECharts option={clusterChartOption} style={{ height: 320 }} />
-        </div>
-        <div style={{ background: '#121a2d', border: '1px solid #2a3b62', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Suite Distribution (DuckDB)</h3>
-          <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
-        </div>
+        <Panel title="Semantic Cluster Map"><ReactECharts option={clusterChartOption} style={{ height: 320 }} /></Panel>
+        <Panel title="Suite Distribution (DuckDB)"><ReactECharts option={suiteChartOption} style={{ height: 320 }} /></Panel>
       </section>
 
-      <section style={{ marginTop: 16, background: '#121a2d', border: '1px solid #2a3b62', borderRadius: 12, padding: 12 }}>
-        <h3 style={{ marginTop: 0 }}>QA Copilot</h3>
+      <Panel title="Sample Generated Test Cases" style={{ marginTop: 16 }}>
+        <div style={{ maxHeight: 220, overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ color: '#9fb2df' }}>
+                <th style={th}>ID</th><th style={th}>Title</th><th style={th}>Suite</th><th style={th}>Tags</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, 20).map((r) => (
+                <tr key={r.test_case_id}><td style={td}>{r.test_case_id}</td><td style={td}>{r.title}</td><td style={td}>{r.test_suite_id}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
+
+      <Panel title="QA Copilot" style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={question} onChange={(e) => setQuestion(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff' }} />
-          <button onClick={onAsk} style={{ background: '#2a6cff', color: '#fff', border: 0, borderRadius: 10, padding: '10px 14px', fontWeight: 700, cursor: 'pointer' }}>Ask</button>
+          <button onClick={onAsk} style={btn('#2a6cff')}>Ask</button>
         </div>
         <pre style={{ marginTop: 10, background: '#0b1220', border: '1px solid #324978', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', color: '#c9d7f8' }}>{answer || 'No response yet.'}</pre>
-      </section>
+      </Panel>
     </main>
   )
 }
+
+function Panel({ title, children, style = {} as React.CSSProperties }: any) {
+  return <section style={{ background: '#121a2d', border: '1px solid #2a3b62', borderRadius: 12, padding: 12, ...style }}><h3 style={{ marginTop: 0 }}>{title}</h3>{children}</section>
+}
+
+const th: React.CSSProperties = { textAlign: 'left', padding: '8px 6px', borderBottom: '1px solid #273b62' }
+const td: React.CSSProperties = { padding: '8px 6px', borderBottom: '1px solid #1a2d50', color: '#c9d7f8' }
+const btn = (bg: string, disabled = false): React.CSSProperties => ({ background: bg, color: '#fff', border: 0, borderRadius: 10, padding: '10px 14px', fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? .5 : 1 })
 
 createRoot(document.getElementById('root')!).render(<App />)
