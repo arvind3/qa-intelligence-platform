@@ -94,6 +94,8 @@ function App() {
   const [suiteDist, setSuiteDist] = useState<any[]>([])
   const [question, setQuestion] = useState('What duplicate families should we consolidate first?')
   const [answer, setAnswer] = useState('')
+  const [isAsking, setIsAsking] = useState(false)
+  const [askProgress, setAskProgress] = useState(0)
   const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
   const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
   const [buildProgress, setBuildProgress] = useState(0)
@@ -248,6 +250,11 @@ function App() {
   }
 
   const onAsk = async () => {
+    if (isAsking) return
+    setIsAsking(true)
+    setAskProgress(10)
+    setAnswer('')
+
     let context: TestCaseRow[] = []
 
     if (store.isReady()) {
@@ -256,13 +263,25 @@ function App() {
       context = hits.map((h: any) => h.doc?.meta).filter(Boolean)
     }
 
+    setAskProgress(35)
+
     if (!context.length) context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
     if (!context.length) context = rows.slice(0, 10)
 
+    setAskProgress(65)
+
     try {
-      setAnswer(await askCopilot(question, context))
+      const res = await askCopilot(question, context)
+      setAskProgress(100)
+      setAnswer(res)
     } catch (err: any) {
+      setAskProgress(100)
       setAnswer(String(err?.message || err))
+    } finally {
+      setTimeout(() => {
+        setIsAsking(false)
+        setAskProgress(0)
+      }, 250)
     }
   }
 
@@ -411,9 +430,19 @@ function App() {
 
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={question} onChange={(e) => setQuestion(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff' }} />
-          <button onClick={onAsk} style={btn('#2a6cff')}>Ask</button>
+          <button onClick={onAsk} disabled={isAsking} style={btn('#2a6cff', isAsking)}>{isAsking ? 'Thinking...' : 'Ask'}</button>
         </div>
-        <pre style={{ marginTop: 10, background: '#0b1220', border: '1px solid #324978', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', color: '#c9d7f8' }}>{answer || 'No response yet.'}</pre>
+
+        {isAsking && (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 12, color: '#9fb2df', marginBottom: 5 }}>Processing with local LLM...</div>
+            <div style={{ width: '100%', height: 8, borderRadius: 999, background: '#1b2a47', border: '1px solid #324978', overflow: 'hidden' }}>
+              <div style={{ width: `${askProgress}%`, height: '100%', background: 'linear-gradient(90deg,#7c5cff,#4ad0ff)' }} />
+            </div>
+          </div>
+        )}
+
+        <pre style={{ marginTop: 10, background: '#0b1220', border: '1px solid #324978', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', color: '#c9d7f8' }}>{answer || (isAsking ? 'Working on your question...' : 'No response yet.')}</pre>
       </Panel>
 
       {popup && (
