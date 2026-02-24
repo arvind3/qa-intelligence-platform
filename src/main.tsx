@@ -22,6 +22,11 @@ const KPI_HELP: Record<string, string> = {
   'Orphan Tag Ratio': 'Share of tests with missing or inconsistent tags.',
 }
 
+const CHART_HELP: Record<string, string> = {
+  'Semantic Cluster Map': 'Each bubble is a semantic test family. Bigger bubbles mean more tests with similar intent. Use this chart to find consolidation opportunities and overly repeated scenarios.',
+  'Suite Distribution (DuckDB)': 'Shows how test cases are distributed across suites. Large imbalances may indicate over-testing in some suites and blind spots in others.',
+}
+
 function parseJson(text: string): TestCaseRow[] {
   const raw = JSON.parse(text)
   if (!Array.isArray(raw)) throw new Error('JSON must be an array of test cases')
@@ -49,14 +54,22 @@ function parseCsv(text: string): TestCaseRow[] {
   }))
 }
 
-function downloadJson(rows: TestCaseRow[]) {
+function downloadJson(rows: TestCaseRow[], fileName = 'generated_testcases.json') {
   const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `generated_testcases_${rows.length}.json`
+  a.download = fileName
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function textKey(r: TestCaseRow) {
+  return `${r.title}|${r.description}|${r.steps}`.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+function nearDupKey(r: TestCaseRow) {
+  return `${r.title}|${r.description}`.toLowerCase().replace(/\s+/g, ' ').split(' ').slice(0, 8).join(' ')
 }
 
 function App() {
@@ -68,10 +81,11 @@ function App() {
   const [suiteDist, setSuiteDist] = useState<any[]>([])
   const [question, setQuestion] = useState('What duplicate families should we consolidate first?')
   const [answer, setAnswer] = useState('')
-  const [openHelp, setOpenHelp] = useState<string | null>(null)
   const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
   const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
   const [buildProgress, setBuildProgress] = useState(0)
+  const [semanticVectors, setSemanticVectors] = useState<any[]>([])
+  const [popup, setPopup] = useState<{ title: string; body: string } | null>(null)
   const cancelBuildRef = useRef(false)
 
   const kpis = useMemo(() => computeKpis(rows), [rows])
@@ -133,28 +147,51 @@ function App() {
     setEmbStatus(`Initializing embedding + sqlite-vec index (${buildMode.toUpperCase()} mode, ${targetRows.length.toLocaleString()} tests)...`)
 
     const mode = await initEmbeddingModel()
-    const vectors: any[] = []
-    const chunkSize = buildMode === 'quick' ? 120 : 80
 
-    for (let i = 0; i < targetRows.length; i += chunkSize) {
-      if (cancelBuildRef.current) {
-        setEmbStatus(`Semantic build cancelled at ${buildProgress}%`) 
-        setIsBuildingSemantic(false)
-        return
+    const chunkSize = buildMode === 'quick' ? 120 : 80
+    const workerInput = targetRows.map((row) => ({
+      id: row.test_case_id,
+      text: `${row.title}. ${row.description}. Steps: ${row.steps}. Tags: ${(row.tags || []).join(', ')}`,
+    }))
+
+    const vectors: any[] = await new Promise((resolve, reject) => {
+      const worker = new Worker(new URL('./workers/embeddingWorker.ts', import.meta.url), { type: 'module' })
+
+      worker.onmessage = (e: MessageEvent<any>) => {
+        const m = e.data
+        if (cancelBuildRef.current) {
+          worker.terminate()
+          reject(new Error('cancelled'))
+          return
+        }
+
+        if (m?.type === 'progress') {
+          setBuildProgress(m.progress)
+          setEmbStatus(`Embedding progress: ${m.progress}% (${m.done.toLocaleString()}/${m.total.toLocaleString()})`)
+        }
+
+        if (m?.type === 'done') {
+          worker.terminate()
+          const vecs = m.vectors.map((v: any) => ({ ...v, meta: targetRows.find((r) => r.test_case_id === v.id) }))
+          resolve(vecs)
+        }
       }
-      const batch = targetRows.slice(i, i + chunkSize)
-      const batchVecs = await Promise.all(
-        batch.map(async (row) => {
-          const text = `${row.title}. ${row.description}. Steps: ${row.steps}. Tags: ${(row.tags || []).join(', ')}`
-          const vec = await embedText(text)
-          return { id: row.test_case_id, text, vec, meta: row }
-        }),
-      )
-      vectors.push(...batchVecs)
-      const pct = Math.round((vectors.length / targetRows.length) * 100)
-      setBuildProgress(pct)
-      setEmbStatus(`Embedding progress: ${pct}% (${vectors.length.toLocaleString()}/${targetRows.length.toLocaleString()})`)
-      await new Promise((r) => setTimeout(r, 0))
+
+      worker.onerror = (err) => {
+        worker.terminate()
+        reject(err)
+      }
+
+      worker.postMessage({ type: 'build', rows: workerInput, chunkSize })
+    }).catch((err) => {
+      if (String(err).includes('cancelled')) return []
+      throw err
+    })
+
+    if (!vectors.length) {
+      setEmbStatus(`Semantic build cancelled at ${buildProgress}%`)
+      setIsBuildingSemantic(false)
+      return
     }
 
     const vecReady = await store.init()
@@ -166,6 +203,7 @@ function App() {
 
     const c = clusterByThreshold(vectors, 0.9)
     setClusters(c)
+    setSemanticVectors(vectors)
     setEmbStatus(`Embeddings ready (${mode}) · index: ${indexMode} · ${vectors.length.toLocaleString()} vectors · ${c.length} clusters`)
     setIsBuildingSemantic(false)
   }
@@ -192,6 +230,67 @@ function App() {
     if (!context.length) context = rows.slice(0, 10)
 
     setAnswer(await askCopilot(question, context))
+  }
+
+  const downloadKpiMatching = (label: string) => {
+    if (!rows.length) return
+
+    if (label === 'Total Tests') return downloadJson(rows, 'kpi_total_tests.json')
+
+    if (label === 'Exact Duplicate Groups') {
+      const map = new Map<string, TestCaseRow[]>()
+      rows.forEach((r) => {
+        const k = textKey(r)
+        if (!map.has(k)) map.set(k, [])
+        map.get(k)!.push(r)
+      })
+      const out = [...map.values()].filter((g) => g.length > 1).flat()
+      return downloadJson(out, 'kpi_exact_duplicates.json')
+    }
+
+    if (label === 'Near Duplicate Groups') {
+      if (semanticVectors.length) {
+        const near = clusters.filter((c) => c.length > 1).flat().map((x: any) => x.meta)
+        return downloadJson(near, 'kpi_near_duplicates.json')
+      }
+      const b = new Map<string, TestCaseRow[]>()
+      rows.forEach((r) => {
+        const k = nearDupKey(r)
+        if (!b.has(k)) b.set(k, [])
+        b.get(k)!.push(r)
+      })
+      const out = [...b.values()].filter((g) => g.length > 1).flat()
+      return downloadJson(out, 'kpi_near_duplicates.json')
+    }
+
+    if (label === 'Redundancy Score') {
+      const map = new Map<string, TestCaseRow[]>()
+      rows.forEach((r) => {
+        const k = textKey(r)
+        if (!map.has(k)) map.set(k, [])
+        map.get(k)!.push(r)
+      })
+      const exact = [...map.values()].filter((g) => g.length > 1).flat()
+      const near = clusters.filter((c) => c.length > 1).flat().map((x: any) => x.meta)
+      const merged = [...new Map([...exact, ...near].map((r) => [r.test_case_id, r])).values()]
+      return downloadJson(merged, 'kpi_redundancy_candidates.json')
+    }
+
+    if (label === 'Entropy Score') {
+      const byFeature = new Map<string, TestCaseRow[]>()
+      rows.forEach((r) => {
+        const f = (r.title.split(':')[0] || 'unknown').trim().toLowerCase()
+        if (!byFeature.has(f)) byFeature.set(f, [])
+        byFeature.get(f)!.push(r)
+      })
+      const least = [...byFeature.entries()].sort((a, b) => a[1].length - b[1].length).slice(0, 3).flatMap((x) => x[1])
+      return downloadJson(least, 'kpi_entropy_low_coverage_features.json')
+    }
+
+    if (label === 'Orphan Tag Ratio') {
+      const out = rows.filter((r) => !r.tags?.length || r.tags.some((t) => t !== t.toLowerCase()))
+      return downloadJson(out, 'kpi_orphan_or_inconsistent_tags.json')
+    }
   }
 
   return (
@@ -232,17 +331,21 @@ function App() {
           <div key={k.label} style={{ background: 'linear-gradient(165deg, #121d34, #101a2f)', border: '1px solid #30446f', borderRadius: 14, padding: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ color: '#a8bce8', fontSize: 12, fontWeight: 700 }}>{k.label}</div>
-              <button onClick={() => setOpenHelp(openHelp === k.label ? null : k.label)} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #4a6396', background: '#1a2b4f', color: '#d8e6ff', cursor: 'pointer', fontWeight: 700 }}>i</button>
+              <button onClick={() => setPopup({ title: k.label, body: KPI_HELP[k.label] })} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #4a6396', background: '#1a2b4f', color: '#d8e6ff', cursor: 'pointer', fontWeight: 700 }}>i</button>
             </div>
             <div style={{ fontSize: 30, fontWeight: 800, marginTop: 8 }}>{k.value}</div>
-            {openHelp === k.label && <div style={{ marginTop: 8, fontSize: 12, color: '#bdd0f7', background: '#0b1530', border: '1px solid #2f446f', borderRadius: 10, padding: 10 }}>{KPI_HELP[k.label]}</div>}
+            <button onClick={() => downloadKpiMatching(k.label)} style={{ ...btn('#243f73'), marginTop: 8, width: '100%' }}>Download matching tests</button>
           </div>
         ))}
       </section>
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Panel title="Semantic Cluster Map"><ReactECharts option={clusterChartOption} style={{ height: 320 }} /></Panel>
-        <Panel title="Suite Distribution (DuckDB)"><ReactECharts option={suiteChartOption} style={{ height: 320 }} /></Panel>
+        <Panel title="Semantic Cluster Map" infoText={CHART_HELP['Semantic Cluster Map']} onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
+          <ReactECharts option={clusterChartOption} style={{ height: 320 }} />
+        </Panel>
+        <Panel title="Suite Distribution (DuckDB)" infoText={CHART_HELP['Suite Distribution (DuckDB)']} onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
+          <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
+        </Panel>
       </section>
 
       <Panel title="Sample Generated Test Cases" style={{ marginTop: 16 }}>
@@ -269,12 +372,32 @@ function App() {
         </div>
         <pre style={{ marginTop: 10, background: '#0b1220', border: '1px solid #324978', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', color: '#c9d7f8' }}>{answer || 'No response yet.'}</pre>
       </Panel>
+
+      {popup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,8,20,0.7)', display: 'grid', placeItems: 'center', zIndex: 40 }}>
+          <div style={{ width: 'min(680px, 92vw)', background: '#101a30', border: '1px solid #314a79', borderRadius: 14, padding: 16, boxShadow: '0 20px 70px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>{popup.title}</h3>
+              <button onClick={() => setPopup(null)} style={{ ...btn('#273e6c'), padding: '6px 10px' }}>Close</button>
+            </div>
+            <p style={{ color: '#c8d7f8', lineHeight: 1.55 }}>{popup.body}</p>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
 
-function Panel({ title, children, style = {} as React.CSSProperties }: any) {
-  return <section style={{ background: '#121a2d', border: '1px solid #2a3b62', borderRadius: 12, padding: 12, ...style }}><h3 style={{ marginTop: 0 }}>{title}</h3>{children}</section>
+function Panel({ title, children, style = {} as React.CSSProperties, onInfo }: any) {
+  return (
+    <section style={{ background: '#121a2d', border: '1px solid #2a3b62', borderRadius: 12, padding: 12, ...style }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ marginTop: 0 }}>{title}</h3>
+        {onInfo && <button onClick={onInfo} style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid #4a6396', background: '#1a2b4f', color: '#d8e6ff', cursor: 'pointer', fontWeight: 700 }}>i</button>}
+      </div>
+      {children}
+    </section>
+  )
 }
 
 const th: React.CSSProperties = { textAlign: 'left', padding: '8px 6px', borderBottom: '1px solid #273b62' }
