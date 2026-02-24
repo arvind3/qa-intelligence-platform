@@ -14,18 +14,31 @@ import { SqliteVecStore } from './sqliteVecStore'
 const store = new SqliteVecStore()
 
 const KPI_HELP: Record<string, string> = {
-  'Total Tests': 'Total number of test cases currently loaded.',
-  'Exact Duplicate Groups': 'Identical tests (same title + description + steps).',
-  'Near Duplicate Groups': 'Semantically similar tests that likely overlap in intent.',
-  'Redundancy Score': 'Higher means more repeated coverage and better consolidation opportunity.',
-  'Entropy Score': 'Higher means better diversity of test intent across features.',
-  'Orphan Tag Ratio': 'Share of tests with missing or inconsistent tags.',
+  'Total Tests': `Concept: Number of test cases currently loaded in this workspace.\n\nTechnical: Simple row count from the canonical test-case table.\n\nBusiness value: Helps stakeholders confirm scope and confidence level of the analysis before interpreting advanced KPIs.`,
+  'Exact Duplicate Groups': `Concept: Tests that are literal copies of each other.\n\nTechnical: Title + description + steps normalize to identical text key and are grouped.\n\nBusiness value: Indicates immediate cleanup opportunities that reduce suite cost without coverage loss.`,
+  'Near Duplicate Groups': `Concept: Tests that are different text, but same intent.\n\nTechnical: Semantic clustering and near-neighbor logic over embeddings identifies high-overlap families.\n\nBusiness value: Reveals hidden waste that normal text matching misses, improving regression efficiency.`,
+  'Redundancy Score': `Concept: Overall repetition pressure in the suite.\n\nTechnical: Combined signal from exact + near-duplicate membership against total population.\n\nBusiness value: Higher redundancy means longer execution cycles, slower releases, and higher maintenance spend.`,
+  'Entropy Score': `Concept: Diversity of test intent across the portfolio.\n\nTechnical: Normalized Shannon entropy on feature-intent distribution.\n\nBusiness value: Low entropy suggests concentration risk (over-testing some areas, under-testing others). High entropy signals healthier risk distribution.`,
+  'Orphan Tag Ratio': `Concept: Tests with missing, inconsistent, or non-standard tags.\n\nTechnical: Rule-based detection for empty tags, casing mismatches, and taxonomy drift.\n\nBusiness value: High orphan ratio reduces traceability, ownership clarity, and governance quality for large QA programs.`,
 }
 
 const CHART_HELP: Record<string, string> = {
-  'Semantic Cluster Map': 'Each bubble is a semantic test family. Bigger bubbles mean more tests with similar intent. Use this chart to find consolidation opportunities and overly repeated scenarios.',
-  'Suite Distribution (DuckDB)': 'Shows how test cases are distributed across suites. Large imbalances may indicate over-testing in some suites and blind spots in others.',
+  'Semantic Cluster Map': `Concept: Visual map of semantic test families.\n\nTechnical: Each bubble represents a cluster of similar embeddings; larger bubble = larger family.\n\nBusiness value: Helps leadership quickly see duplication hotspots and prioritize consolidation waves.`,
+  'Suite Distribution (DuckDB)': `Concept: Distribution of tests across suites.\n\nTechnical: DuckDB aggregation of test counts by suite ID.\n\nBusiness value: Detects imbalance and potential blind spots; supports rational rebalancing of QA investment.`,
 }
+
+const SAMPLE_QUESTIONS = [
+  'Which duplicate families should we consolidate first?',
+  'What are the top 3 coverage gaps by business risk?',
+  'Which suites are over-indexed with redundant tests?',
+  'Show tests with weak or inconsistent tagging.',
+  'Which semantic clusters look too broad and need split?',
+  'What is the fastest way to reduce regression runtime by 20%?',
+  'Which tests are best candidates for parameterization?',
+  'What should be the next governance cleanup backlog?',
+  'Explain why entropy score changed after this dataset load.',
+  'If we remove top duplicate clusters, what coverage risk remains?',
+]
 
 function parseJson(text: string): TestCaseRow[] {
   const raw = JSON.parse(text)
@@ -340,10 +353,10 @@ function App() {
       </section>
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Panel title="Semantic Cluster Map" infoText={CHART_HELP['Semantic Cluster Map']} onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
+        <Panel title="Semantic Cluster Map" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
           <ReactECharts option={clusterChartOption} style={{ height: 320 }} />
         </Panel>
-        <Panel title="Suite Distribution (DuckDB)" infoText={CHART_HELP['Suite Distribution (DuckDB)']} onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
+        <Panel title="Suite Distribution (DuckDB)" onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
           <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
         </Panel>
       </section>
@@ -366,6 +379,15 @@ function App() {
       </Panel>
 
       <Panel title="QA Copilot" style={{ marginTop: 16 }}>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: '#9fb2df', marginBottom: 6 }}>Quick discovery questions:</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {SAMPLE_QUESTIONS.map((q) => (
+              <button key={q} onClick={() => setQuestion(q)} style={{ ...btn('#223a6b'), padding: '6px 10px', fontSize: 12 }}>{q}</button>
+            ))}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={question} onChange={(e) => setQuestion(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff' }} />
           <button onClick={onAsk} style={btn('#2a6cff')}>Ask</button>
@@ -380,7 +402,7 @@ function App() {
               <h3 style={{ margin: 0 }}>{popup.title}</h3>
               <button onClick={() => setPopup(null)} style={{ ...btn('#273e6c'), padding: '6px 10px' }}>Close</button>
             </div>
-            <p style={{ color: '#c8d7f8', lineHeight: 1.55 }}>{popup.body}</p>
+            <p style={{ color: '#c8d7f8', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{popup.body}</p>
           </div>
         </div>
       )}
