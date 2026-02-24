@@ -19,6 +19,6 @@ describe('LLM evaluation strategy (evil/eval)', () => {
 
   it('documents no-template-fallback policy', async () => {
     await expect(askCopilot('Where is our coverage gap?', context as any))
-      .rejects.toThrow(/local in-browser LLM required/i)
+      .rejects.toThrow(/local LLM runtime unavailable/i)
   })
 })
