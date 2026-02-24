@@ -1,23 +1,32 @@
 import type { TestCaseRow } from './types'
 
 let engine: any = null
+let activeModel = ''
+
+const CANDIDATE_MODELS = [
+  'Qwen2.5-3B-Instruct-q4f16_1-MLC',
+  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+  'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+]
 
 export async function initReasoningEngine() {
-  if (engine) return 'webllm-ready'
-  try {
-    const webllm = await import('@mlc-ai/web-llm')
-    const appConfig = {
-      model_list: [{
-        model: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
-        model_id: 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
-        model_lib: '',
-      }],
-    } as any
-    engine = await webllm.CreateMLCEngine('Qwen2.5-3B-Instruct-q4f16_1-MLC', { appConfig })
-    return 'webllm-ready'
-  } catch (err: any) {
-    throw new Error(`webllm-init-failed: ${err?.message || 'unknown error'}`)
+  if (engine) return `webllm-ready:${activeModel}`
+
+  const webllm = await import('@mlc-ai/web-llm')
+  const errors: string[] = []
+
+  for (const model of CANDIDATE_MODELS) {
+    try {
+      // Use built-in registry models. Avoid custom appConfig with invalid model_lib URLs.
+      engine = await webllm.CreateMLCEngine(model)
+      activeModel = model
+      return `webllm-ready:${model}`
+    } catch (err: any) {
+      errors.push(`${model} => ${err?.message || 'init failed'}`)
+    }
   }
+
+  throw new Error(`webllm-init-failed: ${errors.join(' | ')}`)
 }
 
 export function isReasoningReady() {

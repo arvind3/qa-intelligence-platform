@@ -1,3 +1,3 @@
 check,status,duration_ms
-"Unit + Eval Tests (Vitest)",PASS,1270
-"E2E UX Tests (Playwright)",PASS,5456
+"Unit + Eval Tests (Vitest)",PASS,1450
+"E2E UX Tests (Playwright)",PASS,6002
