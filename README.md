@@ -42,7 +42,19 @@ Private MVP for semantic QA intelligence using local-first browser architecture.
 npm install
 npm run dev
 npm run build
+npm run test:quality
 ```
+
+## Quality gates and results
+- Unit + evaluation tests (Vitest)
+- End-user live UX tests (Playwright)
+- Automated output files stored under `results/`:
+  - `results/TEST_RESULTS.md`
+  - `results/TEST_RESULTS.csv`
+  - `results/eval_results.csv`
+- LLM evaluation artifacts:
+  - `eval_strategy/expected_results.md`
+  - `eval_strategy/actual_results.md`
 
 ## Notes
 - Embedding model attempts `Xenova/all-MiniLM-L6-v2`; if unavailable, falls back to deterministic hash embeddings.

@@ -1,0 +1,3 @@
+test_id,expected,actual,status
+EVAL-001,duplicate guidance includes consolidation,validated via vitest assertion,PASS
+EVAL-002,coverage guidance includes gap recommendation,validated via vitest assertion,PASS
