@@ -7,3 +7,12 @@ export type TestCaseRow = {
   steps: string
   tags: string[]
 }
+
+export type QAKpis = {
+  totalTests: number
+  exactDuplicateGroups: number
+  nearDuplicateGroups: number
+  redundancyScore: number
+  entropyScore: number
+  orphanTagRatio: number
+}
