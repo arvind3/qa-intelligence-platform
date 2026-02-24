@@ -2,54 +2,54 @@
 
 Private MVP for semantic QA intelligence using local-first browser architecture.
 
-## Vision
-Upload 10,000+ Azure DevOps-style test cases and automatically:
-- generate embeddings
-- build semantic clusters
-- detect duplicates / near-duplicates
-- compute entropy + redundancy KPIs
-- visualize clusters and coverage
-- explain insights with local LLM (Qwen + fallback)
+## What is implemented now
 
-## MVP Scope (Phase 1)
-Data fields:
-- test_case_id
-- test_plan_id
-- test_suite_id
-- title
-- description
-- steps
-- tags
+### Core workflow
+- Upload Azure DevOps-style test case data (`.json` or `.csv`)
+- Generate synthetic **10,000** test cases for MVP benchmarking
+- Compute KPI dashboard in-browser
+- Build embeddings and semantic clusters
+- Ask QA Copilot questions over clustered context
 
-Out of scope (phase 1): execution/run data, flakiness, runtime analytics.
+### Browser architecture
+1. **Upload Layer**
+2. **Vector Layer** (local store, Zvec adapter-ready interface)
+3. **Analytics Layer** (`DuckDB-WASM`)
+4. **Reasoning Layer** (`Qwen/WebLLM primary`, template fallback)
 
-## Architecture
-1. Upload Layer
-2. Vector Layer (Zvec)
-3. Analytics Layer (DuckDB-WASM)
-4. Reasoning Layer (Qwen primary + fallback)
-
-## Proposed Stack
-- Frontend: React + TypeScript + Vite
-- Analytics: DuckDB-WASM
-- Embeddings: Transformers.js
-- Vector DB: Zvec (WASM binding / browser-compatible runtime)
-- LLM: WebLLM (WebGPU) + WASM fallback
-- Charts: ECharts
-
-## KPI v1
+### KPI v1
 - Redundancy Score
 - Entropy Score
 - Orphan Tag Ratio
-- Coverage Heatmap (cluster x suite/tag)
+- Exact duplicate groups
+- Near-duplicate groups
 
-## Milestones
-- M1: Data generator + upload + schema validation
-- M2: Embeddings + vector index + duplicate detection
-- M3: Clustering + KPIs + dashboard
-- M4: LLM explanations + action suggestions
+### Visuals
+- Semantic cluster scatter map
+- Suite distribution chart (DuckDB query backed)
 
-## Next
-- Build skeleton app and synthetic 10k dataset generator
-- Wire DuckDB + embedding pipeline
-- Add first dashboard cards + cluster map
+## Data schema (MVP)
+- `test_case_id`
+- `test_plan_id`
+- `test_suite_id`
+- `title`
+- `description`
+- `steps`
+- `tags`
+
+## Project scripts
+```bash
+npm install
+npm run dev
+npm run build
+```
+
+## Notes
+- Embedding model attempts `Xenova/all-MiniLM-L6-v2`; if unavailable, falls back to deterministic hash embeddings.
+- LLM engine attempts WebLLM Qwen runtime; if unavailable, uses deterministic reasoning fallback.
+- Everything runs fully in browser (no backend, no API keys).
+
+## Next extension (already scaffold-ready)
+- Replace local vector implementation with direct Zvec browser runtime binding.
+- Add coverage heatmap and semantic family drill-down panel.
+- Add execution data phase (flakiness and runtime intelligence).
