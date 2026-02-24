@@ -1,4 +1,8 @@
 import * as duckdb from '@duckdb/duckdb-wasm'
+import mvpWasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url'
+import ehWasm from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url'
+import mvpWorker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url'
+import ehWorker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url'
 import type { TestCaseRow } from './types'
 
 let db: duckdb.AsyncDuckDB | null = null
@@ -6,7 +10,17 @@ let db: duckdb.AsyncDuckDB | null = null
 export async function getDb() {
   if (db) return db
 
-  const bundles = duckdb.getJsDelivrBundles()
+  const bundles: duckdb.DuckDBBundles = {
+    mvp: {
+      mainModule: mvpWasm,
+      mainWorker: mvpWorker,
+    },
+    eh: {
+      mainModule: ehWasm,
+      mainWorker: ehWorker,
+    },
+  }
+
   const bundle = await duckdb.selectBundle(bundles)
   const worker = new Worker(bundle.mainWorker!)
   const logger = new duckdb.ConsoleLogger()
