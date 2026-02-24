@@ -5,12 +5,13 @@ import Papa from 'papaparse'
 import { computeKpis } from './analytics'
 import { askCopilot, initReasoningEngine } from './copilot'
 import { loadTestsToDuckDB, queryDashboardStats } from './duckdb'
-import { embedTests, initEmbeddingModel } from './embeddings'
+import { embedTests, initEmbeddingModel, embedText } from './embeddings'
 import { generateSyntheticTests } from './synthetic'
 import type { TestCaseRow } from './types'
-import { clusterByThreshold, LocalVectorStore } from './vector'
+import { clusterByThreshold } from './vector'
+import { SqliteVecStore } from './sqliteVecStore'
 
-const store = new LocalVectorStore()
+const store = new SqliteVecStore()
 
 const KPI_HELP: Record<string, string> = {
   'Total Tests': 'Total number of test cases currently loaded.',
@@ -120,13 +121,20 @@ function App() {
 
   const onBuildSemantic = async () => {
     if (!rows.length) return
-    setEmbStatus('Initializing embedding model...')
+    setEmbStatus('Initializing embedding + sqlite-vec index...')
     const mode = await initEmbeddingModel()
     const vectors = await embedTests(rows)
-    store.upsert(vectors)
+
+    const vecReady = await store.init()
+    let indexMode = 'in-memory fallback'
+    if (vecReady) {
+      await store.upsert(vectors)
+      indexMode = 'sqlite-vec/zvec'
+    }
+
     const c = clusterByThreshold(vectors, 0.9)
     setClusters(c)
-    setEmbStatus(`Embeddings ready (${mode}) · ${vectors.length.toLocaleString()} vectors · ${c.length} clusters`)
+    setEmbStatus(`Embeddings ready (${mode}) · index: ${indexMode} · ${vectors.length.toLocaleString()} vectors · ${c.length} clusters`)
   }
 
   const onInitLlm = async () => {
@@ -135,8 +143,18 @@ function App() {
   }
 
   const onAsk = async () => {
-    const context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
-    setAnswer(await askCopilot(question, context.length ? context : rows.slice(0, 10)))
+    let context: TestCaseRow[] = []
+
+    if (store.isReady()) {
+      const qv = await embedText(question)
+      const hits = store.search(qv, 10)
+      context = hits.map((h: any) => h.doc?.meta).filter(Boolean)
+    }
+
+    if (!context.length) context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
+    if (!context.length) context = rows.slice(0, 10)
+
+    setAnswer(await askCopilot(question, context))
   }
 
   return (
