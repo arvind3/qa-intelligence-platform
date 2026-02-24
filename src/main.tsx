@@ -162,15 +162,12 @@ function App() {
     setEmbStatus(`Initializing embedding + sqlite-vec index (${buildMode.toUpperCase()} mode, ${targetRows.length.toLocaleString()} tests)...`)
 
     if (!isReasoningReady()) {
-      setLlmStatus('Initializing local LLM (required for semantic KPIs)...')
+      setLlmStatus('Initializing local LLM in background (optional for KPI build)...')
       try {
         const llmMode = await initReasoningEngine()
         setLlmStatus(`Copilot mode: ${llmMode}`)
       } catch (err: any) {
-        setEmbStatus('Semantic build blocked: local LLM is required but failed to initialize.')
-        setLlmStatus(String(err?.message || err))
-        setIsBuildingSemantic(false)
-        return
+        setLlmStatus(`Copilot unavailable on this device/browser: ${String(err?.message || err)}`)
       }
     }
 
@@ -240,15 +237,6 @@ function App() {
     cancelBuildRef.current = true
   }
 
-  const onInitLlm = async () => {
-    setLlmStatus('Initializing QA Copilot...')
-    try {
-      setLlmStatus(`Copilot mode: ${await initReasoningEngine()}`)
-    } catch (err: any) {
-      setLlmStatus(String(err?.message || err))
-    }
-  }
-
   const onAsk = async () => {
     if (isAsking) return
     setIsAsking(true)
@@ -268,7 +256,23 @@ function App() {
     if (!context.length) context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
     if (!context.length) context = rows.slice(0, 10)
 
-    setAskProgress(65)
+    setAskProgress(60)
+
+    if (!isReasoningReady()) {
+      setLlmStatus('Starting local LLM for Copilot...')
+      try {
+        const llmMode = await initReasoningEngine()
+        setLlmStatus(`Copilot mode: ${llmMode}`)
+      } catch (err: any) {
+        setAskProgress(100)
+        setAnswer(`Copilot unavailable on this device/browser. Semantic KPIs still work.\n\nReason: ${String(err?.message || err)}`)
+        setIsAsking(false)
+        setAskProgress(0)
+        return
+      }
+    }
+
+    setAskProgress(78)
 
     try {
       const res = await askCopilot(question, context)
@@ -367,7 +371,6 @@ function App() {
           {isBuildingSemantic ? `Building... ${buildProgress}%` : 'Build Embeddings + Clusters'}
         </button>
         <button onClick={onCancelSemanticBuild} disabled={!isBuildingSemantic} style={btn('#9a3240', !isBuildingSemantic)}>Cancel Build</button>
-        <button onClick={onInitLlm} style={btn('#6f51ff')}>Initialize QA Copilot</button>
       </div>
 
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
