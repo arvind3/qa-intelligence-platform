@@ -537,9 +537,15 @@ function App() {
 
   return (
     <main style={{ fontFamily: 'Segoe UI Variable, Segoe UI, sans-serif', padding: 24, background: 'radial-gradient(circle at 15% 0%, #12244f, #0a1220 45%)', color: '#e8f0ff', minHeight: '100vh' }}>
-      <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 34 }}>Test Case Intelligence Platform</h1>
+      <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 34 }}>QualiGraph</h1>
+      <p style={{ marginTop: 0, marginBottom: 6, color: '#d9e7ff', fontWeight: 700, maxWidth: 980 }}>
+        The Quality Signal Platform for Product Delivery
+      </p>
+      <p style={{ marginTop: 0, marginBottom: 6, color: '#c4d5f4', fontWeight: 600, maxWidth: 980 }}>
+        The operating system for delivery quality
+      </p>
       <p style={{ marginTop: 0, color: '#abc0ea', maxWidth: 980 }}>
-        Upload or generate test cases, analyze quality KPIs, build semantic clusters, and ask Copilot for actionable guidance.
+        Unify requirements, tests, executions, and defects into one intelligence graph, so teams can measure risk, prioritize action, and ship with confidence.
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
