@@ -36,13 +36,13 @@ jobs:
         working-directory: ../wt-master
         run: |
           npm ci
-          npm run build
+          npm run build -- --base=/qa-intelligence-platform/
 
       - name: Build expanded-solution (preview)
         working-directory: ../wt-expanded
         run: |
           npm ci
-          npm run build
+          npm run build -- --base=/qa-intelligence-platform/expanded-solution/
 
       - name: Assemble Pages artifact
         run: |
