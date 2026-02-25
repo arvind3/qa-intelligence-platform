@@ -1,76 +1,76 @@
 {
   "count": 10,
   "ok": 10,
-  "avgMs": 4911,
+  "avgMs": 10545,
   "avgQuality": 100,
   "results": [
     {
       "q": "Which duplicate families should we consolidate first?",
       "status": "ok",
-      "ms": 29930,
+      "ms": 45505,
       "quality": 100,
-      "preview": "Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7"
+      "preview": "Summary: Local LLM could not initialize on this device, so this is a deterministic advisory response. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S"
     },
     {
       "q": "What are the top 3 coverage gaps by business risk?",
       "status": "ok",
-      "ms": 2255,
+      "ms": 42257,
       "quality": 100,
       "preview": "Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I"
     },
     {
       "q": "Which suites are over-indexed with redundant tests?",
       "status": "ok",
-      "ms": 2090,
+      "ms": 2233,
       "quality": 100,
-      "preview": "Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7"
+      "preview": "Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-1"
     },
     {
       "q": "Show tests with weak or inconsistent tagging.",
       "status": "ok",
-      "ms": 2239,
+      "ms": 2222,
       "quality": 100,
-      "preview": "Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 ("
+      "preview": "Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 "
     },
     {
       "q": "Which semantic clusters look too broad and need split?",
       "status": "ok",
-      "ms": 1989,
+      "ms": 2204,
       "quality": 100,
-      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S"
+      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S-CAT-2), TC-EX-2 ("
     },
     {
       "q": "What is the fastest way to reduce regression runtime by 20%?",
       "status": "ok",
-      "ms": 2089,
+      "ms": 1942,
       "quality": 100,
-      "preview": "Summary: Regression runtime can be reduced by removing low-value overlap while preserving intent coverage. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-"
+      "preview": "Summary: Regression runtime can be reduced by removing low-value overlap while preserving intent coverage. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX"
     },
     {
       "q": "Which tests are best candidates for parameterization?",
       "status": "ok",
-      "ms": 2139,
+      "ms": 2339,
       "quality": 100,
-      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S"
+      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S-CAT-2), TC-EX-2 ("
     },
     {
       "q": "What should be the next governance cleanup backlog?",
       "status": "ok",
-      "ms": 2172,
+      "ms": 2073,
       "quality": 100,
-      "preview": "Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 ("
+      "preview": "Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 "
     },
     {
       "q": "Explain why entropy score changed after this dataset load.",
       "status": "ok",
-      "ms": 2137,
+      "ms": 2223,
       "quality": 100,
-      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S"
+      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S-CAT-2), TC-EX-2 ("
     },
     {
       "q": "If we remove top duplicate clusters, what coverage risk remains?",
       "status": "ok",
-      "ms": 2073,
+      "ms": 2453,
       "quality": 100,
       "preview": "Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I"
     }

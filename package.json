@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "test:quality": "node scripts/run-quality-gates.mjs"
+    "test:quality": "node scripts/run-quality-gates.mjs",
+    "test:live-benchmark": "node scripts/live-benchmark.cjs"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.29.0",

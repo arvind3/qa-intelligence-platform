@@ -5,22 +5,44 @@ let hfGenerator: any = null
 let activeMode: 'webgpu' | 'cpu-wasm' | 'unavailable' = 'unavailable'
 let activeModel = ''
 
-const WEBLLM_MODELS = [
-  // Try very small/efficient first
-  'Llama-3.2-1B-Instruct-q4f16_1-MLC',
-  // Try Gemma mobile-friendly candidate (may vary by runtime support)
-  'gemma-2-2b-it-q4f16_1-MLC',
-  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
-  'Phi-3.5-mini-instruct-q4f16_1-MLC',
-]
+export type ModelProfile = 'ultra-light' | 'balanced' | 'quality'
+let modelProfile: ModelProfile = 'balanced'
 
-const HF_FALLBACK_MODELS = [
-  // Try Gemma small first when available in transformers runtime
-  'onnx-community/gemma-2-2b-it',
-  'Xenova/LaMini-Flan-T5-77M',
-  'Xenova/flan-t5-small',
-  'Xenova/distilgpt2',
-]
+const WEBLLM_MODELS: Record<ModelProfile, string[]> = {
+  'ultra-light': [
+    'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+  ],
+  balanced: [
+    'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+    'gemma-2-2b-it-q4f16_1-MLC',
+    'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+    'Phi-3.5-mini-instruct-q4f16_1-MLC',
+  ],
+  quality: [
+    'gemma-2-2b-it-q4f16_1-MLC',
+    'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+    'Phi-3.5-mini-instruct-q4f16_1-MLC',
+    'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+  ],
+}
+
+const HF_FALLBACK_MODELS: Record<ModelProfile, string[]> = {
+  'ultra-light': [
+    'Xenova/LaMini-Flan-T5-77M',
+    'Xenova/distilgpt2',
+  ],
+  balanced: [
+    'onnx-community/gemma-2-2b-it',
+    'Xenova/LaMini-Flan-T5-77M',
+    'Xenova/flan-t5-small',
+    'Xenova/distilgpt2',
+  ],
+  quality: [
+    'onnx-community/gemma-2-2b-it',
+    'Xenova/flan-t5-small',
+    'Xenova/distilgpt2',
+  ],
+}
 
 function buildContext(context: TestCaseRow[]) {
   const unique = new Map<string, TestCaseRow>()
@@ -131,6 +153,19 @@ async function generateWithHF(question: string, brief: string) {
   return text.replace(prompt, '').trim()
 }
 
+export function setModelProfile(profile: ModelProfile) {
+  modelProfile = profile
+  // force re-init for profile change
+  webllmEngine = null
+  hfGenerator = null
+  activeMode = 'unavailable'
+  activeModel = ''
+}
+
+export function getModelProfile() {
+  return modelProfile
+}
+
 export async function initReasoningEngine() {
   if (webllmEngine || hfGenerator) return `${activeMode}:${activeModel}`
 
@@ -139,7 +174,7 @@ export async function initReasoningEngine() {
   // 1) Try WebGPU local LLM first
   try {
     const webllm = await import('@mlc-ai/web-llm')
-    for (const model of WEBLLM_MODELS) {
+    for (const model of WEBLLM_MODELS[modelProfile]) {
       try {
         webllmEngine = await webllm.CreateMLCEngine(model)
         activeMode = 'webgpu'
@@ -156,7 +191,7 @@ export async function initReasoningEngine() {
   // 2) CPU/WASM fallback local model (transformers.js)
   try {
     const mod = await import('@huggingface/transformers')
-    for (const model of HF_FALLBACK_MODELS) {
+    for (const model of HF_FALLBACK_MODELS[modelProfile]) {
       try {
         hfGenerator = await mod.pipeline('text2text-generation', model)
         activeMode = 'cpu-wasm'

@@ -1,9 +1,9 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import ReactECharts from 'echarts-for-react'
 import Papa from 'papaparse'
 import { computeKpis } from './analytics'
-import { askCopilot, getReasoningMode, initReasoningEngine, isReasoningReady } from './copilot'
+import { askCopilot, getModelProfile, getReasoningMode, initReasoningEngine, isReasoningReady, setModelProfile, type ModelProfile } from './copilot'
 import { loadTestsToDuckDB, queryDashboardStats } from './duckdb'
 import { initEmbeddingModel, embedText } from './embeddings'
 import { generateSyntheticTests } from './synthetic'
@@ -90,6 +90,16 @@ function emergencyCopilotAnswer(question: string, context: TestCaseRow[]) {
   return `Summary:\nLocal LLM could not initialize on this device, so this is a deterministic advisory response.\n\nEvidence:\nTop evidence IDs: ${sample || 'No evidence available'}\n\nRecommended Actions:\n- Retry on a browser/device with WebGPU enabled or let CPU/WASM model warm up longer\n- Keep using semantic KPIs and cluster downloads for decision-making\n- Start consolidation with top duplicate families and tag-governance cleanup\n\nQuestion handled: ${question}`
 }
 
+function rankContextByQuestion(question: string, input: TestCaseRow[]) {
+  const qTokens = question.toLowerCase().split(/\W+/).filter((x) => x.length > 2)
+  const scored = input.map((t) => {
+    const text = `${t.title} ${t.description} ${(t.tags || []).join(' ')}`.toLowerCase()
+    const score = qTokens.reduce((s, tok) => s + (text.includes(tok) ? 1 : 0), 0)
+    return { t, score }
+  })
+  return scored.sort((a, b) => b.score - a.score).map((x) => x.t)
+}
+
 function App() {
   const [rows, setRows] = useState<TestCaseRow[]>([])
   const [status, setStatus] = useState('No dataset loaded')
@@ -109,7 +119,24 @@ function App() {
   const [semanticReady, setSemanticReady] = useState(false)
   const [semanticVectors, setSemanticVectors] = useState<any[]>([])
   const [popup, setPopup] = useState<{ title: string; body: string } | null>(null)
+  const [modelProfile, setModelProfileState] = useState<ModelProfile>(getModelProfile())
   const cancelBuildRef = useRef(false)
+
+  useEffect(() => {
+    // warm-start local LLM after first paint
+    const t = setTimeout(async () => {
+      if (!isReasoningReady()) {
+        setLlmStatus('Warm-starting local LLM in background...')
+        try {
+          const mode = await initReasoningEngine()
+          setLlmStatus(`Copilot mode: ${mode}`)
+        } catch (err: any) {
+          setLlmStatus(`Copilot warm-start pending: ${String(err?.message || err)}`)
+        }
+      }
+    }, 900)
+    return () => clearTimeout(t)
+  }, [])
 
   const kpis = useMemo(() => computeKpis(rows), [rows])
   const runtimeMode = getReasoningMode()
@@ -274,8 +301,9 @@ function App() {
     setAskProgress(35)
     setAskStage('Retrieving evidence')
 
-    if (!context.length) context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
-    if (!context.length) context = rows.slice(0, 10)
+    if (!context.length) context = (clusters[0] || []).slice(0, 20).map((x: any) => x.meta)
+    if (!context.length) context = rows.slice(0, 20)
+    context = rankContextByQuestion(question, context).slice(0, 8)
 
     setAskProgress(60)
     setAskStage('Checking local LLM runtime')
@@ -311,8 +339,19 @@ function App() {
       ])
 
       if (askRequestIdRef.current !== reqId) return
+      setAskProgress(92)
+      // lightweight streaming UX
+      const chunks = String(timed).split(/\s+/)
+      let acc = ''
+      for (let i = 0; i < chunks.length; i++) {
+        if (askRequestIdRef.current !== reqId) return
+        acc += (i === 0 ? '' : ' ') + chunks[i]
+        if (i % 12 === 0 || i === chunks.length - 1) {
+          setAnswer(acc)
+          await new Promise((r) => setTimeout(r, 8))
+        }
+      }
       setAskProgress(100)
-      setAnswer(timed)
     } catch (err: any) {
       if (askRequestIdRef.current !== reqId) return
       setAskProgress(100)
@@ -421,9 +460,26 @@ function App() {
       </div>
 
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 6, padding: '6px 10px', border: '1px solid #324978', borderRadius: 999, background: '#111c34', color: '#c7d8fa', fontSize: 12 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: runtimeMode.startsWith('webgpu') ? '#39d98a' : runtimeMode.startsWith('cpu-wasm') ? '#f0c14b' : '#f36f6f' }} />
-        Copilot Runtime: {runtimeMode}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid #324978', borderRadius: 999, background: '#111c34', color: '#c7d8fa', fontSize: 12 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: runtimeMode.startsWith('webgpu') ? '#39d98a' : runtimeMode.startsWith('cpu-wasm') ? '#f0c14b' : '#f36f6f' }} />
+          Copilot Runtime: {runtimeMode}
+        </div>
+        <label style={{ fontSize: 12, color: '#a9bee9' }}>Model profile:</label>
+        <select
+          value={modelProfile}
+          onChange={(e) => {
+            const p = e.target.value as ModelProfile
+            setModelProfileState(p)
+            setModelProfile(p)
+            setLlmStatus(`Model profile changed to ${p}. Runtime will re-initialize on next ask/build.`)
+          }}
+          style={{ background: '#111c34', color: '#d7e5ff', border: '1px solid #324978', borderRadius: 8, padding: '6px 8px' }}
+        >
+          <option value="ultra-light">Ultra-light</option>
+          <option value="balanced">Balanced</option>
+          <option value="quality">Quality</option>
+        </select>
       </div>
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{embStatus}</div>
       {isBuildingSemantic && (

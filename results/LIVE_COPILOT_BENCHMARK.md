@@ -1,21 +1,21 @@
 # Live Copilot Benchmark
 
-Generated: 2026-02-25T00:52:52.019Z
+Generated: 2026-02-25T01:07:42.958Z
 
 - Questions: 10
 - Completed: 10
-- Average latency: 4911 ms
+- Average latency: 10545 ms
 - Average quality score: 100/100
 
 | # | Question | Status | Time (ms) | Quality | Preview |
 |---:|---|---|---:|---:|---|
-| 1 | Which duplicate families should we consolidate first? | ok | 29930 | 100 | Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7 |
-| 2 | What are the top 3 coverage gaps by business risk? | ok | 2255 | 100 | Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I |
-| 3 | Which suites are over-indexed with redundant tests? | ok | 2090 | 100 | Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7 |
-| 4 | Show tests with weak or inconsistent tagging. | ok | 2239 | 100 | Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 ( |
-| 5 | Which semantic clusters look too broad and need split? | ok | 1989 | 100 | Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S |
-| 6 | What is the fastest way to reduce regression runtime by 20%? | ok | 2089 | 100 | Summary: Regression runtime can be reduced by removing low-value overlap while preserving intent coverage. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX- |
-| 7 | Which tests are best candidates for parameterization? | ok | 2139 | 100 | Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S |
-| 8 | What should be the next governance cleanup backlog? | ok | 2172 | 100 | Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 ( |
-| 9 | Explain why entropy score changed after this dataset load. | ok | 2137 | 100 | Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S |
-| 10 | If we remove top duplicate clusters, what coverage risk remains? | ok | 2073 | 100 | Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I |
+| 1 | Which duplicate families should we consolidate first? | ok | 45505 | 100 | Summary: Local LLM could not initialize on this device, so this is a deterministic advisory response. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S |
+| 2 | What are the top 3 coverage gaps by business risk? | ok | 42257 | 100 | Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I |
+| 3 | Which suites are over-indexed with redundant tests? | ok | 2233 | 100 | Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-1 |
+| 4 | Show tests with weak or inconsistent tagging. | ok | 2222 | 100 | Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1  |
+| 5 | Which semantic clusters look too broad and need split? | ok | 2204 | 100 | Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S-CAT-2), TC-EX-2 ( |
+| 6 | What is the fastest way to reduce regression runtime by 20%? | ok | 1942 | 100 | Summary: Regression runtime can be reduced by removing low-value overlap while preserving intent coverage. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX |
+| 7 | Which tests are best candidates for parameterization? | ok | 2339 | 100 | Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S-CAT-2), TC-EX-2 ( |
+| 8 | What should be the next governance cleanup backlog? | ok | 2073 | 100 | Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1  |
+| 9 | Explain why entropy score changed after this dataset load. | ok | 2223 | 100 | Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-10), TC-EX-1 (S-CAT-2), TC-EX-2 ( |
+| 10 | If we remove top duplicate clusters, what coverage risk remains? | ok | 2453 | 100 | Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I |
