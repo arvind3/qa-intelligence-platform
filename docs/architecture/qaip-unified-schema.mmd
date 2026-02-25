@@ -1,0 +1,49 @@
+flowchart TB
+  subgraph Overview[Unified Schema Overview]
+    O1[Title: QualiGraph Unified Schema]
+    O2[Objective: Standardize cross-tool quality data with complete traceability across requirements, tests, executions, and defects]
+    O3[Target Audience: QA Architects, Engineering Managers, Product Managers, Enterprise Stakeholders, Solution Architects]
+  end
+
+  subgraph CoreEntities[Core Entities]
+    R[requirements\nPK: requirement_id]
+    T[test_cases\nPK: test_id]
+    S[test_suites\nPK: suite_id]
+    P[test_plans\nPK: plan_id]
+    E[executions\nPK: run_id]
+    D[defects\nPK: defect_id]
+    L[requirement_test_links\nPK: requirement_id + test_id]
+  end
+
+  subgraph Relationships[Cardinality]
+    C1[test_plans 1:N test_suites]
+    C2[test_suites 1:N test_cases]
+    C3[test_plans 1:N test_cases]
+    C4[requirements 1:N requirement_test_links]
+    C5[test_cases 1:N requirement_test_links]
+    C6[test_cases 1:N executions]
+    C7[test_cases 1:N defects]
+    C8[requirements 1:N defects]
+  end
+
+  O1 --> O2
+  O2 --> O3
+  O3 --> CoreEntities
+
+  P -->|1:N| S
+  S -->|1:N| T
+  P -->|1:N| T
+  R -->|1:N| L
+  T -->|1:N| L
+  T -->|1:N| E
+  T -->|1:N| D
+  R -->|1:N| D
+
+  C1 -.maps to.-> P
+  C2 -.maps to.-> S
+  C3 -.maps to.-> T
+  C4 -.maps to.-> R
+  C5 -.maps to.-> L
+  C6 -.maps to.-> E
+  C7 -.maps to.-> D
+  C8 -.maps to.-> D
