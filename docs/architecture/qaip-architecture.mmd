@@ -1,0 +1,48 @@
+flowchart TB
+  subgraph UI[Web UI - React/Vite]
+    U1[Generate 10k Unified Schema]
+    U2[Upload JSON/CSV]
+    U3[Build Embeddings + Clusters]
+    U4[Analytics Dashboards and Cluster Maps]
+    U5[Download Exports: Tests, Schema Bundle, Schema Definition]
+  end
+
+  subgraph Data[Canonical Data Layer]
+    D1[Unified Schema Builder]
+    D2[DuckDB-WASM Analytics]
+    D3[SQLite-Vec Vector Store]
+  end
+
+  subgraph AI[AI and Semantic Layer]
+    A1[Embedding Worker transformers]
+    A2[Semantic Clustering]
+    A3[QA Copilot WebLLM + deterministic fallback]
+  end
+
+  subgraph QA[Quality and Governance]
+    Q1[Vitest Unit and Eval]
+    Q2[Playwright E2E]
+    Q3[Quality Reports CSV JSON MD]
+  end
+
+  subgraph CI[GitHub Actions]
+    C1[Quality Gates]
+    C2[Deploy Pages root + expanded-solution]
+  end
+
+  U1 --> D1
+  U2 --> D1
+  D1 --> D2
+  U3 --> A1
+  A1 --> D3
+  D3 --> A2
+  A2 --> U4
+  D2 --> U4
+  U4 -.context.-> A3
+  A3 --> U4
+  D1 --> U5
+  Q1 --> C1
+  Q2 --> C1
+  Q3 --> C1
+  C1 --> C2
+  C2 --> UI
