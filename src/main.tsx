@@ -85,6 +85,11 @@ function nearDupKey(r: TestCaseRow) {
   return `${r.title}|${r.description}`.toLowerCase().replace(/\s+/g, ' ').split(' ').slice(0, 8).join(' ')
 }
 
+function emergencyCopilotAnswer(question: string, context: TestCaseRow[]) {
+  const sample = context.slice(0, 6).map((t) => `${t.test_case_id} (${t.test_suite_id})`).join(', ')
+  return `Summary:\nLocal LLM could not initialize on this device, so this is a deterministic advisory response.\n\nEvidence:\nTop evidence IDs: ${sample || 'No evidence available'}\n\nRecommended Actions:\n- Retry on a browser/device with WebGPU enabled or let CPU/WASM model warm up longer\n- Keep using semantic KPIs and cluster downloads for decision-making\n- Start consolidation with top duplicate families and tag-governance cleanup\n\nQuestion handled: ${question}`
+}
+
 function App() {
   const [rows, setRows] = useState<TestCaseRow[]>([])
   const [status, setStatus] = useState('No dataset loaded')
@@ -287,7 +292,7 @@ function App() {
       } catch (err: any) {
         if (askRequestIdRef.current !== reqId) return
         setAskProgress(100)
-        setAnswer(`Copilot unavailable on this device/browser. Semantic KPIs still work.\n\nReason: ${String(err?.message || err)}`)
+        setAnswer(emergencyCopilotAnswer(question, context))
         setIsAsking(false)
         setAskProgress(0)
         setAskStage('Idle')

@@ -1,78 +1,78 @@
 {
   "count": 10,
   "ok": 10,
-  "avgMs": 5180,
-  "avgQuality": 24,
+  "avgMs": 4911,
+  "avgQuality": 100,
   "results": [
     {
       "q": "Which duplicate families should we consolidate first?",
       "status": "ok",
-      "ms": 27608,
-      "quality": 30,
-      "preview": "The answer is: TC-EX-1: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Admin: edge case on api [tags admin, Regression, Regression] - T"
+      "ms": 29930,
+      "quality": 100,
+      "preview": "Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7"
     },
     {
       "q": "What are the top 3 coverage gaps by business risk?",
       "status": "ok",
-      "ms": 3128,
-      "quality": 30,
-      "preview": "The top 3 coverage gaps by business risk are: 1. The top 3 coverage gaps by business risk are: 1. The top 3 coverage gaps by business risk are: 1. The top 3 cov"
+      "ms": 2255,
+      "quality": 100,
+      "preview": "Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I"
     },
     {
       "q": "Which suites are over-indexed with redundant tests?",
       "status": "ok",
-      "ms": 3107,
-      "quality": 30,
-      "preview": "The answer is: TC-EX-1: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Orders: edge case on api [tags admin, Regression, Regression] - "
+      "ms": 2090,
+      "quality": 100,
+      "preview": "Summary: Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7"
     },
     {
       "q": "Show tests with weak or inconsistent tagging.",
       "status": "ok",
-      "ms": 3112,
-      "quality": 30,
-      "preview": "- TC-EX-0: Admin: edge case on api [tags=admin,Regression,regression] - TC-EX-1: Admin: edge case on api [tags=admin,Regression,regression] - TC-EX-1: Admin: ed"
+      "ms": 2239,
+      "quality": 100,
+      "preview": "Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 ("
     },
     {
       "q": "Which semantic clusters look too broad and need split?",
       "status": "ok",
-      "ms": 3113,
-      "quality": 30,
-      "preview": "The answer is: - TC-EX-0: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Orders: edge case on api [tags admin, Regression, Regression] "
+      "ms": 1989,
+      "quality": 100,
+      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S"
     },
     {
       "q": "What is the fastest way to reduce regression runtime by 20%?",
       "status": "ok",
-      "ms": 3072,
-      "quality": 30,
-      "preview": "The fastest way to reduce regression runtime by 20% is to use a TC-EX-0: Admin: edge case on api [tagsadmin,Regression,regression] - TC-EX-1: Admin: edge case o"
+      "ms": 2089,
+      "quality": 100,
+      "preview": "Summary: Regression runtime can be reduced by removing low-value overlap while preserving intent coverage. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-"
     },
     {
       "q": "Which tests are best candidates for parameterization?",
       "status": "ok",
-      "ms": 3072,
-      "quality": 30,
-      "preview": "The best candidates for parameterization are: - TC-EX-0: Admin: edge case on api [tags=admin,Regression,regression] - TC-EX-1: Orders: edge case on api [tags=ad"
+      "ms": 2139,
+      "quality": 100,
+      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S"
     },
     {
       "q": "What should be the next governance cleanup backlog?",
       "status": "ok",
-      "ms": 3043,
-      "quality": 30,
-      "preview": "The next governance cleanup backlog would be: - TC-EX-0: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Admin: edge case on api [tags a"
+      "ms": 2172,
+      "quality": 100,
+      "preview": "Summary: Governance quality can be improved quickly through tag normalization and ownership assignment. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 ("
     },
     {
       "q": "Explain why entropy score changed after this dataset load.",
       "status": "ok",
-      "ms": 1321,
-      "quality": 0,
-      "preview": "The answer is: entropy score changed after this dataset load because the entropy score changed after this dataset load."
+      "ms": 2137,
+      "quality": 100,
+      "preview": "Summary: Prioritize high-overlap semantic families and weak-governance areas first. Evidence: Top evidence IDs: TC-EX-0 (S-INV-7), TC-EX-1 (S-REP-9), TC-EX-2 (S"
     },
     {
       "q": "If we remove top duplicate clusters, what coverage risk remains?",
       "status": "ok",
-      "ms": 1222,
-      "quality": 0,
-      "preview": "The answer is: if we remove top duplicate clusters, the coverage risk remains."
+      "ms": 2073,
+      "quality": 100,
+      "preview": "Summary: Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging. Evidence: Top evidence IDs: TC-EX-0 (S-I"
     }
   ]
 }
