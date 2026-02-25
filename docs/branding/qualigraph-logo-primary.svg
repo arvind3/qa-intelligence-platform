@@ -1,0 +1,49 @@
+<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="qgGrad" x1="48" y1="32" x2="272" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#68D7FF"/>
+      <stop offset="0.5" stop-color="#7F8DFF"/>
+      <stop offset="1" stop-color="#B07CFF"/>
+    </linearGradient>
+    <linearGradient id="lineGrad" x1="70" y1="60" x2="250" y2="230" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9CEBFF"/>
+      <stop offset="1" stop-color="#D3BCFF"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Icon -->
+  <g transform="translate(24,24)">
+    <rect x="0" y="0" width="272" height="272" rx="56" fill="#0B1B37"/>
+    <rect x="8" y="8" width="256" height="256" rx="48" stroke="url(#qgGrad)" stroke-opacity="0.55"/>
+
+    <!-- Graph lines -->
+    <path d="M66 196 L118 116 L176 148 L218 84" stroke="url(#lineGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+    <path d="M66 196 L150 210 L214 178" stroke="url(#lineGrad)" stroke-opacity="0.7" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Nodes -->
+    <circle cx="66" cy="196" r="13" fill="#68D7FF"/>
+    <circle cx="118" cy="116" r="13" fill="#7F8DFF"/>
+    <circle cx="176" cy="148" r="13" fill="#B07CFF"/>
+    <circle cx="218" cy="84" r="13" fill="#68D7FF"/>
+    <circle cx="150" cy="210" r="10" fill="#7F8DFF"/>
+    <circle cx="214" cy="178" r="10" fill="#B07CFF"/>
+
+    <!-- Q glyph hint -->
+    <circle cx="136" cy="136" r="74" stroke="url(#qgGrad)" stroke-width="10" stroke-opacity="0.22"/>
+    <path d="M184 184 L210 210" stroke="url(#qgGrad)" stroke-width="10" stroke-linecap="round" stroke-opacity="0.35"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(340,72)">
+    <text x="0" y="96" fill="#EAF2FF" font-size="90" font-weight="800" font-family="Inter, Segoe UI, Arial, sans-serif" letter-spacing="0.5">QualiGraph</text>
+    <text x="2" y="148" fill="#AFC4EB" font-size="33" font-weight="600" font-family="Inter, Segoe UI, Arial, sans-serif">GenAI Quality Engine for Product Delivery</text>
+    <text x="2" y="198" fill="#8FA9D9" font-size="27" font-weight="500" font-family="Inter, Segoe UI, Arial, sans-serif">Browser-first. Privacy-first. Zero API cost with local AI.</text>
+  </g>
+</svg>
