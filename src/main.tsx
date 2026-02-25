@@ -10,6 +10,7 @@ import { generateSyntheticTests } from './synthetic'
 import type { TestCaseRow } from './types'
 import { clusterByThreshold } from './vector'
 import { SqliteVecStore } from './sqliteVecStore'
+import { buildClusterMeta } from './clusterMeta'
 
 const store = new SqliteVecStore()
 
@@ -204,10 +205,17 @@ function App() {
 
   const selectedCluster = selectedClusterIndex !== null ? clusters[selectedClusterIndex] : null
   const selectedClusterRows: TestCaseRow[] = (selectedCluster || []).map((x: any) => x.meta).filter(Boolean)
-  const selectedClusterDisplayIndex = selectedClusterIndex !== null ? selectedClusterIndex + 1 : null
   const totalClusterCount = clusters.length
+  const visibleClusterCount = Math.min(clusters.length, 24)
   const totalPopulation = semanticVectors.length || rows.length
   const selectedClusterFamilyName = selectedClusterRows[0]?.title || selectedCluster?.[0]?.meta?.title || 'Unknown family'
+  const clusterMeta = buildClusterMeta({
+    selectedClusterIndex,
+    totalClusterCount,
+    selectedClusterSize: selectedClusterRows.length,
+    totalPopulation,
+    familyName: selectedClusterFamilyName,
+  })
 
   const clusterEvents = {
     click: (params: any) => {
@@ -579,7 +587,7 @@ function App() {
       <Panel title="Cluster Interaction" style={{ marginTop: 16 }}>
         {selectedCluster ? (
           <div style={{ color: '#9fb2df', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>Selected Cluster ID {selectedClusterDisplayIndex}/{totalClusterCount} · Family: {selectedClusterFamilyName} · Size: {selectedClusterRows.length}/{totalPopulation}</span>
+            <span>Selected Cluster ID {clusterMeta.selectedClusterDisplayIndex} · Family: {clusterMeta.familyName} · Size: {clusterMeta.sizeLabel} · Total clusters: {clusterMeta.totalClusterCount}</span>
             <button onClick={() => setClusterPopupOpen(true)} style={btn('#2a6cff')}>Open Cluster Details</button>
           </div>
         ) : (
@@ -636,17 +644,20 @@ function App() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,8,20,0.78)', display: 'grid', placeItems: 'center', zIndex: 45 }}>
           <div style={{ width: 'min(980px, 96vw)', maxHeight: '88vh', overflow: 'auto', background: '#101a30', border: '1px solid #314a79', borderRadius: 14, padding: 16, boxShadow: '0 20px 70px rgba(0,0,0,0.5)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0 }}>Cluster ID {selectedClusterDisplayIndex}/{totalClusterCount} Details</h3>
+              <h3 style={{ margin: 0 }}>Cluster ID {clusterMeta.selectedClusterDisplayIndex} Details</h3>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button onClick={() => downloadJson(selectedClusterRows, `cluster_${selectedClusterDisplayIndex}_testcases.json`)} style={btn('#2a6cff', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download JSON</button>
-                <button onClick={() => downloadCsv(selectedClusterRows, `cluster_${selectedClusterDisplayIndex}_testcases.csv`)} style={btn('#245f4a', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download CSV</button>
+                <button onClick={() => downloadJson(selectedClusterRows, `cluster_${clusterMeta.selectedClusterDisplayIndex}_testcases.json`)} style={btn('#2a6cff', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download JSON</button>
+                <button onClick={() => downloadCsv(selectedClusterRows, `cluster_${clusterMeta.selectedClusterDisplayIndex}_testcases.csv`)} style={btn('#245f4a', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download CSV</button>
                 <button onClick={() => setClusterPopupOpen(false)} style={{ ...btn('#273e6c'), padding: '6px 10px' }}>Close</button>
               </div>
             </div>
 
             <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Family:</strong> {selectedClusterFamilyName}</span>
-              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Size:</strong> {selectedClusterRows.length}/{totalPopulation}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Cluster ID:</strong> {clusterMeta.selectedClusterDisplayIndex}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Family:</strong> {clusterMeta.familyName}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Size:</strong> {clusterMeta.sizeLabel}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Total Clusters:</strong> {clusterMeta.totalClusterCount}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Visible on map:</strong> {visibleClusterCount}</span>
             </div>
 
             <div style={{ marginTop: 10, color: '#c8d7f8', fontSize: 13, lineHeight: 1.55 }}>
