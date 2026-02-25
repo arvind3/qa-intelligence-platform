@@ -2,9 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+    branches: [main, master, expanded-solution]
   workflow_dispatch:
 
 permissions:
@@ -13,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: pages
   cancel-in-progress: true
 
 jobs:
@@ -21,24 +19,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+
+      - name: Prepare worktrees
+        run: |
+          git fetch origin master expanded-solution --depth=1
+          git worktree add ../wt-master origin/master
+          git worktree add ../wt-expanded origin/expanded-solution
+
+      - name: Build master (stable)
+        working-directory: ../wt-master
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build expanded-solution (preview)
+        working-directory: ../wt-expanded
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble Pages artifact
+        run: |
+          rm -rf site
+          mkdir -p site
+          cp -R ../wt-master/dist/. site/
+          mkdir -p site/expanded-solution
+          cp -R ../wt-expanded/dist/. site/expanded-solution/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event_name == 'pull_request' && 'github-pages-preview' || 'github-pages' }}
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          preview: ${{ github.event_name == 'pull_request' }}
