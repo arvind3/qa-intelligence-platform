@@ -6,14 +6,17 @@ let activeMode: 'webgpu' | 'cpu-wasm' | 'unavailable' = 'unavailable'
 let activeModel = ''
 
 const WEBLLM_MODELS = [
-  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
+  // Try the smallest practical local WebGPU models first
   'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
   'Phi-3.5-mini-instruct-q4f16_1-MLC',
 ]
 
 const HF_FALLBACK_MODELS = [
+  // CPU/WASM-friendly small models (free)
+  'Xenova/LaMini-Flan-T5-77M',
   'Xenova/flan-t5-small',
-  'Xenova/flan-t5-base',
+  'Xenova/distilgpt2',
 ]
 
 export async function initReasoningEngine() {
@@ -43,12 +46,21 @@ export async function initReasoningEngine() {
     const mod = await import('@huggingface/transformers')
     for (const model of HF_FALLBACK_MODELS) {
       try {
+        // Most instruction-small models here are seq2seq
         hfGenerator = await mod.pipeline('text2text-generation', model)
         activeMode = 'cpu-wasm'
         activeModel = model
         return `${activeMode}:${activeModel}`
-      } catch (err: any) {
-        errors.push(`hf fallback ${model} => ${err?.message || 'init failed'}`)
+      } catch (err1: any) {
+        try {
+          // distilgpt2-style causal fallback
+          hfGenerator = await mod.pipeline('text-generation', model)
+          activeMode = 'cpu-wasm'
+          activeModel = model
+          return `${activeMode}:${activeModel}`
+        } catch (err2: any) {
+          errors.push(`hf fallback ${model} => ${err1?.message || 'seq2seq failed'} | ${err2?.message || 'causal failed'}`)
+        }
       }
     }
   } catch (err: any) {

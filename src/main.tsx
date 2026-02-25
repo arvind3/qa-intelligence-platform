@@ -278,7 +278,7 @@ function App() {
     if (!isReasoningReady()) {
       setLlmStatus('Starting local LLM for Copilot...')
       try {
-        const initTimeoutMs = 15000
+        const initTimeoutMs = 45000
         const llmMode = await Promise.race([
           initReasoningEngine(),
           new Promise<string>((_, reject) => setTimeout(() => reject(new Error(`LLM initialization timed out after ${initTimeoutMs / 1000}s.`)), initTimeoutMs)),
