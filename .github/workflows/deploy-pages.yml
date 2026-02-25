@@ -33,7 +33,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
+      name: ${{ github.ref_name == 'expanded-solution' && 'github-pages-preview' || 'github-pages' }}
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
