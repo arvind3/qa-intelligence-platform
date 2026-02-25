@@ -279,6 +279,8 @@ function App() {
   const [askProgress, setAskProgress] = useState(0)
   const [askStage, setAskStage] = useState('Idle')
   const askRequestIdRef = useRef(0)
+  const [isGeneratingSchema, setIsGeneratingSchema] = useState(false)
+  const [generateProgress, setGenerateProgress] = useState(0)
   const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
   const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
   const [buildProgress, setBuildProgress] = useState(0)
@@ -645,7 +647,27 @@ function App() {
     setSuiteDist((await queryDashboardStats()).suiteDist)
   }
 
-  const onGenerate = async () => loadRows(generateSyntheticTests(10000), 'synthetic unified schema generator')
+  const onGenerate = async () => {
+    if (isGeneratingSchema) return
+    setIsGeneratingSchema(true)
+    setGenerateProgress(8)
+    setStatus('Generating unified schema records...')
+
+    try {
+      await new Promise((r) => setTimeout(r, 80))
+      setGenerateProgress(28)
+      const generated = generateSyntheticTests(10000)
+      setGenerateProgress(72)
+      await loadRows(generated, 'synthetic unified schema generator')
+      setGenerateProgress(100)
+      setStatus(`Loaded ${generated.length.toLocaleString()} tests from synthetic unified schema generator`)
+    } finally {
+      setTimeout(() => {
+        setIsGeneratingSchema(false)
+        setGenerateProgress(0)
+      }, 400)
+    }
+  }
 
   const onUpload: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files?.[0]
@@ -919,7 +941,7 @@ function App() {
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <button onClick={onGenerate} style={btn('#2a6cff')}>Generate 10,000 Unified Schema Records</button>
+        <button onClick={onGenerate} disabled={isGeneratingSchema} style={btn('#2a6cff', isGeneratingSchema)}>{isGeneratingSchema ? `Generating... ${generateProgress}%` : 'Generate 10,000 Unified Schema Records'}</button>
         <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload Test Data JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
         <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Test Cases</button>
         <button onClick={() => downloadJson(unified, 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Complete Schema Bundle</button>
@@ -962,6 +984,11 @@ function App() {
           <option value="quality">Quality</option>
         </select>
       </div>
+      {isGeneratingSchema && (
+        <div style={{ marginBottom: 10, width: '100%', maxWidth: 560, height: 10, background: '#1a2742', borderRadius: 999, overflow: 'hidden', border: '1px solid #324978' }}>
+          <div style={{ width: `${generateProgress}%`, height: '100%', background: 'linear-gradient(90deg,#6d8eff,#57d9ff)' }} />
+        </div>
+      )}
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{embStatus}</div>
       {isBuildingSemantic && (
         <div style={{ marginBottom: 10, width: '100%', maxWidth: 560, height: 10, background: '#1a2742', borderRadius: 999, overflow: 'hidden', border: '1px solid #324978' }}>
@@ -1104,17 +1131,26 @@ function App() {
         )}
       </Panel>
 
-      <Panel title="Sample Generated Test Cases" style={{ marginTop: 16 }}>
-        <div style={{ maxHeight: 220, overflow: 'auto' }}>
+      <Panel title="Sample Unified Schema Records" style={{ marginTop: 16 }}>
+        <div style={{ maxHeight: 260, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ color: '#9fb2df' }}>
-                <th style={th}>ID</th><th style={th}>Title</th><th style={th}>Suite</th><th style={th}>Tags</th>
+                <th style={th}>Entity</th><th style={th}>ID</th><th style={th}>Name / Title</th><th style={th}>Relationship Context</th>
               </tr>
             </thead>
             <tbody>
-              {rows.slice(0, 20).map((r) => (
-                <tr key={r.test_case_id}><td style={td}>{r.test_case_id}</td><td style={td}>{r.title}</td><td style={td}>{r.test_suite_id}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
+              {(unified.requirements || []).slice(0, 6).map((r: any) => (
+                <tr key={`req-${r.requirement_id}`}><td style={td}>Requirement</td><td style={td}>{r.requirement_id}</td><td style={td}>{r.requirement_name}</td><td style={td}>Linked Tests: {(unified.requirement_test_links || []).filter((l: any) => l.requirement_id === r.requirement_id).length}</td></tr>
+              ))}
+              {(unified.test_cases || []).slice(0, 8).map((t: any) => (
+                <tr key={`tc-${t.test_id}`}><td style={td}>Test Case</td><td style={td}>{t.test_id}</td><td style={td}>{t.test_case_name}</td><td style={td}>Plan {t.test_plan_id} · Suite {t.test_suite_id}</td></tr>
+              ))}
+              {(unified.defects || []).slice(0, 6).map((d: any) => (
+                <tr key={`def-${d.defect_id}`}><td style={td}>Defect</td><td style={td}>{d.defect_id}</td><td style={td}>{d.title}</td><td style={td}>{d.severity}/{d.status} · Test {d.linked_test_id}</td></tr>
+              ))}
+              {(unified.executions || []).slice(0, 6).map((e: any) => (
+                <tr key={`run-${e.run_id}`}><td style={td}>Execution</td><td style={td}>{e.run_id}</td><td style={td}>{e.execution_status.toUpperCase()}</td><td style={td}>Test {e.test_id} · {e.environment}</td></tr>
               ))}
             </tbody>
           </table>

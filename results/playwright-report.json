@@ -71,7 +71,7 @@
       "line": 0,
       "specs": [
         {
-          "title": "user can generate dataset and see KPI cards",
+          "title": "user can generate unified schema records and see progress",
           "ok": true,
           "tags": [],
           "tests": [
@@ -86,12 +86,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 702,
+                  "duration": 12869,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-02-24T21:22:41.946Z",
+                  "startTime": "2026-02-25T13:54:43.205Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -99,9 +99,43 @@
               "status": "expected"
             }
           ],
-          "id": "c31ff144dc4fee3acd0a-61cb723f41b530afe4c0",
+          "id": "c31ff144dc4fee3acd0a-60678f80d55ddcffa032",
           "file": "app.spec.ts",
           "line": 3,
+          "column": 1
+        },
+        {
+          "title": "all chart and cluster panels render after generation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10034,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-02-25T13:54:56.221Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c31ff144dc4fee3acd0a-1f2f69c7c33867788519",
+          "file": "app.spec.ts",
+          "line": 15,
           "column": 1
         }
       ]
@@ -109,9 +143,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-02-24T21:22:39.530Z",
-    "duration": 3463.805,
-    "expected": 1,
+    "startTime": "2026-02-25T13:54:40.757Z",
+    "duration": 26145.443,
+    "expected": 2,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
