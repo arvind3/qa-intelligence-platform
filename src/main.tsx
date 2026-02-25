@@ -683,20 +683,48 @@ function App() {
     }
   }, [unified])
 
-  const traceabilityGaugeOption = useMemo(() => {
+  const traceabilityStats = useMemo(() => {
     const totalTests = Math.max(1, (unified.test_cases || []).length)
     const linkedTests = new Set((unified.requirement_test_links || []).map((l: any) => l.test_id)).size
     const defects = unified.defects || []
     const linkedDefects = defects.filter((d: any) => d.linked_test_id && d.linked_requirement_id).length
-    const v1 = Math.round((linkedTests / totalTests) * 100)
-    const v2 = defects.length ? Math.round((linkedDefects / defects.length) * 100) : 100
+    const testLinkagePct = Math.round((linkedTests / totalTests) * 100)
+    const defectLinkagePct = defects.length ? Math.round((linkedDefects / defects.length) * 100) : 100
+    return { totalTests, linkedTests, defectsTotal: defects.length, linkedDefects, testLinkagePct, defectLinkagePct }
+  }, [unified])
+
+  const traceabilityGaugeOption = useMemo(() => {
+    const v1 = traceabilityStats.testLinkagePct
+    const v2 = traceabilityStats.defectLinkagePct
     return {
       series: [
-        { type: 'gauge', center: ['28%', '55%'], radius: '50%', min: 0, max: 100, detail: { formatter: '{value}%' }, title: { offsetCenter: [0, '75%'], color: '#a4bbec' }, data: [{ value: v1, name: 'Test Linkage' }] },
-        { type: 'gauge', center: ['72%', '55%'], radius: '50%', min: 0, max: 100, detail: { formatter: '{value}%' }, title: { offsetCenter: [0, '75%'], color: '#a4bbec' }, data: [{ value: v2, name: 'Defect Linkage' }] },
+        {
+          type: 'gauge', center: ['26%', '48%'], radius: '56%', min: 0, max: 100,
+          splitNumber: 10,
+          axisLine: { lineStyle: { width: 12, color: [[0.5, '#ff7c8f'], [0.8, '#f0c14b'], [1, '#38d39f']] } },
+          axisLabel: { color: '#d6e6ff', fontSize: 11 },
+          axisTick: { length: 6, lineStyle: { color: '#9fb5df' } },
+          splitLine: { length: 14, lineStyle: { color: '#eaf3ff' } },
+          pointer: { itemStyle: { color: '#6da2ff' }, width: 4, length: '65%' },
+          detail: { formatter: '{value}%', color: '#f4fbff', fontSize: 30, fontWeight: 800, offsetCenter: [0, '38%'] },
+          title: { offsetCenter: [0, '78%'], color: '#d7e7ff', fontSize: 16, fontWeight: 700 },
+          data: [{ value: v1, name: 'Test Linkage' }],
+        },
+        {
+          type: 'gauge', center: ['74%', '48%'], radius: '56%', min: 0, max: 100,
+          splitNumber: 10,
+          axisLine: { lineStyle: { width: 12, color: [[0.5, '#ff7c8f'], [0.8, '#f0c14b'], [1, '#38d39f']] } },
+          axisLabel: { color: '#d6e6ff', fontSize: 11 },
+          axisTick: { length: 6, lineStyle: { color: '#9fb5df' } },
+          splitLine: { length: 14, lineStyle: { color: '#eaf3ff' } },
+          pointer: { itemStyle: { color: '#77e6ac' }, width: 4, length: '65%' },
+          detail: { formatter: '{value}%', color: '#f4fbff', fontSize: 30, fontWeight: 800, offsetCenter: [0, '38%'] },
+          title: { offsetCenter: [0, '78%'], color: '#d7e7ff', fontSize: 16, fontWeight: 700 },
+          data: [{ value: v2, name: 'Defect Linkage' }],
+        },
       ],
     }
-  }, [unified])
+  }, [traceabilityStats])
 
   const selectedCluster = selectedClusterIndex !== null ? clusters[selectedClusterIndex] : null
   const selectedClusterRows: TestCaseRow[] = (selectedCluster || []).map((x: any) => x.meta).filter(Boolean)
@@ -1145,8 +1173,16 @@ function App() {
             Click a bubble to inspect that cluster and download its test cases.
           </div>
         </Panel>
-        <Panel title="Suite Distribution (DuckDB)" onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
-          <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
+
+        <Panel title="Requirement Cluster Map" onInfo={() => setPopup({ title: 'Requirement Cluster Map', body: CHART_HELP['Requirement Cluster Map'] })}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setReqShowAll(false)} style={btn(!reqShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setReqShowAll(true)} style={btn(reqShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} placeholder="Search req cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
+            <button onClick={() => reqVisible[0] && setEntityClusterPopup({ kind: 'requirement', item: reqVisible[0] })} style={btn('#2a6cff', !reqVisible.length)} disabled={!reqVisible.length}>Open first</button>
+          </div>
+          <ReactECharts option={requirementClusterOption} onEvents={requirementClusterEvents} style={{ height: 300 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {reqVisible.length}/{requirementClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
         </Panel>
       </section>
 
@@ -1159,23 +1195,16 @@ function App() {
         </Panel>
       </section>
 
-      <section style={{ marginTop: 12 }}>
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+        <Panel title="Suite Distribution (DuckDB)" onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
+          <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
+        </Panel>
         <Panel title="Consolidated Relationship Flow (Plan → Suite → Defects)" onInfo={() => setPopup({ title: 'Consolidated Relationship Flow', body: CHART_HELP['Unified Cluster Map'] })}>
-          <ReactECharts option={relationshipFlowOption} style={{ height: 360 }} />
+          <ReactECharts option={relationshipFlowOption} style={{ height: 320 }} />
         </Panel>
       </section>
 
-      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12 }}>
-        <Panel title="Requirement Cluster Map" onInfo={() => setPopup({ title: 'Requirement Cluster Map', body: CHART_HELP['Requirement Cluster Map'] })}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
-            <button onClick={() => setReqShowAll(false)} style={btn(!reqShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
-            <button onClick={() => setReqShowAll(true)} style={btn(reqShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
-            <input value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} placeholder="Search req cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
-            <button onClick={() => reqVisible[0] && setEntityClusterPopup({ kind: 'requirement', item: reqVisible[0] })} style={btn('#2a6cff', !reqVisible.length)} disabled={!reqVisible.length}>Open first</button>
-          </div>
-          <ReactECharts option={requirementClusterOption} onEvents={requirementClusterEvents} style={{ height: 300 }} />
-          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {reqVisible.length}/{requirementClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
-        </Panel>
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         <Panel title="Defect Cluster Map" onInfo={() => setPopup({ title: 'Defect Cluster Map', body: CHART_HELP['Defect Cluster Map'] })}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
             <button onClick={() => setDefectShowAll(false)} style={btn(!defectShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
@@ -1186,6 +1215,7 @@ function App() {
           <ReactECharts option={defectClusterOption} onEvents={defectClusterEvents} style={{ height: 300 }} />
           <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {defectVisible.length}/{defectClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
         </Panel>
+
         <Panel title="Unified Cluster Map" onInfo={() => setPopup({ title: 'Unified Cluster Map', body: CHART_HELP['Unified Cluster Map'] })}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
             <button onClick={() => setUnifiedShowAll(false)} style={btn(!unifiedShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
@@ -1212,7 +1242,19 @@ function App() {
           <ReactECharts option={reliabilityByPlanOption} style={{ height: 320 }} />
         </Panel>
         <Panel title="Traceability Completeness" onInfo={() => setPopup({ title: 'Traceability Completeness', body: CHART_HELP['Traceability Completeness'] })}>
-          <ReactECharts option={traceabilityGaugeOption} style={{ height: 320 }} />
+          <ReactECharts option={traceabilityGaugeOption} style={{ height: 330 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8, marginTop: 8 }}>
+            <div style={{ background: '#0f1b33', border: '1px solid #35528a', borderRadius: 10, padding: 10 }}>
+              <div style={{ color: '#8fb3ff', fontSize: 12, fontWeight: 700 }}>Test Linkage %</div>
+              <div style={{ color: '#f4fbff', fontSize: 20, fontWeight: 800 }}>{traceabilityStats.testLinkagePct}%</div>
+              <div style={{ color: '#b8c9ef', fontSize: 12 }}>Linked tests / Total tests = {traceabilityStats.linkedTests.toLocaleString()} / {traceabilityStats.totalTests.toLocaleString()}</div>
+            </div>
+            <div style={{ background: '#0f1b33', border: '1px solid #35528a', borderRadius: 10, padding: 10 }}>
+              <div style={{ color: '#8fe7b8', fontSize: 12, fontWeight: 700 }}>Defect Linkage %</div>
+              <div style={{ color: '#f4fbff', fontSize: 20, fontWeight: 800 }}>{traceabilityStats.defectLinkagePct}%</div>
+              <div style={{ color: '#b8c9ef', fontSize: 12 }}>Defects linked to test + requirement / Total defects = {traceabilityStats.linkedDefects.toLocaleString()} / {traceabilityStats.defectsTotal.toLocaleString()}</div>
+            </div>
+          </div>
         </Panel>
       </section>
 
