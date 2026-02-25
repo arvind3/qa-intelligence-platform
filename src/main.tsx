@@ -68,7 +68,7 @@ function parseCsv(text: string): TestCaseRow[] {
   }))
 }
 
-function downloadJson(rows: TestCaseRow[], fileName = 'generated_testcases.json') {
+function downloadJson(rows: any, fileName = 'generated_testcases.json') {
   const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -76,6 +76,140 @@ function downloadJson(rows: TestCaseRow[], fileName = 'generated_testcases.json'
   a.download = fileName
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function buildUnifiedSchema(rows: TestCaseRow[]) {
+  const now = new Date().toISOString()
+
+  const plans = new Map<string, any>()
+  const suites = new Map<string, any>()
+  const requirements = new Map<string, any>()
+  const requirementTestLinks: any[] = []
+  const executions: any[] = []
+  const defects: any[] = []
+
+  const getFeature = (r: TestCaseRow) => {
+    const fromTag = (r.tags || []).find((t) => /^[a-z]+(?:-[a-z]+)*$/i.test(t) && !['regression', 'web', 'mobile', 'api'].includes(t.toLowerCase()))
+    if (fromTag) return fromTag.toLowerCase()
+    const left = (r.title || '').split(':')[0]?.trim()
+    return (left || 'general').toLowerCase().replace(/\s+/g, '-')
+  }
+
+  const hash = (s: string) => Array.from(s).reduce((a, c) => ((a * 31 + c.charCodeAt(0)) >>> 0), 7)
+
+  rows.forEach((r, i) => {
+    const feature = getFeature(r)
+    const reqId = `REQ-${feature.toUpperCase()}`
+
+    if (!plans.has(r.test_plan_id)) {
+      plans.set(r.test_plan_id, {
+        plan_id: r.test_plan_id,
+        plan_name: `Plan ${r.test_plan_id}`,
+        source_system: 'synthetic',
+        source_key: r.test_plan_id,
+        created_at: now,
+        updated_at: now,
+      })
+    }
+
+    if (!suites.has(r.test_suite_id)) {
+      suites.set(r.test_suite_id, {
+        suite_id: r.test_suite_id,
+        suite_name: `Suite ${r.test_suite_id}`,
+        test_plan_id: r.test_plan_id,
+        source_system: 'synthetic',
+        source_key: r.test_suite_id,
+        created_at: now,
+        updated_at: now,
+      })
+    }
+
+    if (!requirements.has(reqId)) {
+      requirements.set(reqId, {
+        requirement_id: reqId,
+        requirement_name: `${feature.replace(/-/g, ' ')} capability`,
+        requirement_description: `Business requirement for ${feature.replace(/-/g, ' ')} behavior and reliability.`,
+        requirement_acceptance_criteria: [
+          'Behavior is validated under happy path and negative path conditions',
+          'Traceability exists between requirement and linked test cases',
+        ],
+        tags: [feature, 'quality-signal'],
+        source_system: 'synthetic',
+        source_key: reqId,
+        created_at: now,
+        updated_at: now,
+      })
+    }
+
+    requirementTestLinks.push({
+      requirement_id: reqId,
+      test_id: r.test_case_id,
+      link_type: 'validates',
+      confidence: 0.92,
+    })
+
+    const h = hash(r.test_case_id)
+    const statusBucket = h % 100
+    const execution_status = statusBucket < 72 ? 'passed' : statusBucket < 92 ? 'failed' : 'blocked'
+
+    executions.push({
+      run_id: `RUN-${(i + 1).toString().padStart(6, '0')}`,
+      test_id: r.test_case_id,
+      test_plan_id: r.test_plan_id,
+      test_suite_id: r.test_suite_id,
+      environment: ['qa', 'staging', 'prod-like'][h % 3],
+      executed_at: now,
+      execution_status,
+      duration_ms: 1200 + (h % 9000),
+    })
+
+    if (execution_status === 'failed' && h % 5 === 0) {
+      defects.push({
+        defect_id: `DEF-${(defects.length + 1).toString().padStart(5, '0')}`,
+        title: `Failure in ${r.title}`,
+        severity: ['low', 'medium', 'high', 'critical'][h % 4],
+        status: ['new', 'open', 'in-progress'][h % 3],
+        linked_test_id: r.test_case_id,
+        linked_requirement_id: reqId,
+        source_system: 'synthetic',
+        source_key: `BUG-${h % 100000}`,
+        created_at: now,
+      })
+    }
+  })
+
+  return {
+    schema_version: 'qaip-canonical-v1',
+    generated_at: now,
+    summary: {
+      requirements: requirements.size,
+      test_cases: rows.length,
+      test_suites: suites.size,
+      test_plans: plans.size,
+      executions: executions.length,
+      defects: defects.length,
+      requirement_test_links: requirementTestLinks.length,
+    },
+    requirements: Array.from(requirements.values()),
+    test_cases: rows.map((r) => ({
+      test_id: r.test_case_id,
+      test_plan_id: r.test_plan_id,
+      test_suite_id: r.test_suite_id,
+      test_case_name: r.title,
+      test_case_description: r.description,
+      test_steps: r.steps,
+      tags: r.tags || [],
+      source_system: 'synthetic',
+      source_key: r.test_case_id,
+      created_at: now,
+      updated_at: now,
+    })),
+    test_suites: Array.from(suites.values()),
+    test_plans: Array.from(plans.values()),
+    requirement_test_links: requirementTestLinks,
+    executions,
+    defects,
+  }
 }
 
 function downloadCsv(rows: TestCaseRow[], fileName = 'cluster_testcases.csv') {
@@ -552,6 +686,7 @@ function App() {
         <button onClick={onGenerate} style={btn('#2a6cff')}>Generate 10,000 High-Quality Tests</button>
         <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
         <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Generated Tests</button>
+        <button onClick={() => downloadJson(buildUnifiedSchema(rows), 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Unified Schema Bundle</button>
 
         <div style={{ display: 'inline-flex', border: '1px solid #3a5388', borderRadius: 10, overflow: 'hidden' }}>
           <button onClick={() => setBuildMode('quick')} style={{ ...btn(buildMode === 'quick' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Quick (2k)</button>
