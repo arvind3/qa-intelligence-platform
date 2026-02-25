@@ -147,6 +147,10 @@ function App() {
   const [modelProfile, setModelProfileState] = useState<ModelProfile>(getModelProfile())
   const [selectedClusterIndex, setSelectedClusterIndex] = useState<number | null>(null)
   const [clusterPopupOpen, setClusterPopupOpen] = useState(false)
+  const [showAllClusters, setShowAllClusters] = useState(false)
+  const [clusterSearch, setClusterSearch] = useState('')
+  const [clusterSortBy, setClusterSortBy] = useState<'id' | 'size' | 'family' | 'risk'>('size')
+  const [clusterSortDir, setClusterSortDir] = useState<'asc' | 'desc'>('desc')
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const cancelBuildRef = useRef(false)
 
@@ -185,16 +189,48 @@ function App() {
     { label: 'Orphan Tag Ratio', value: `${kpis.orphanTagRatio}%`, type: 'deterministic' as const },
   ]
 
+  const clusterSummaries = useMemo(() => {
+    const pop = semanticVectors.length || rows.length || 1
+    return clusters.map((c: any, i: number) => {
+      const family = c?.[0]?.meta?.title || 'Unknown family'
+      const size = c.length || 0
+      const ratio = size / pop
+      const risk = ratio >= 0.04 ? 'high' : ratio >= 0.02 ? 'medium' : 'low'
+      return { index: i, id: i + 1, family, size, risk }
+    })
+  }, [clusters, semanticVectors.length, rows.length])
+
+  const filteredSortedClusters = useMemo(() => {
+    const q = clusterSearch.trim().toLowerCase()
+    const base = clusterSummaries.filter((c) => !q || c.family.toLowerCase().includes(q) || String(c.id).includes(q))
+
+    const sorted = [...base].sort((a, b) => {
+      let cmp = 0
+      if (clusterSortBy === 'id') cmp = a.id - b.id
+      else if (clusterSortBy === 'size') cmp = a.size - b.size
+      else if (clusterSortBy === 'family') cmp = a.family.localeCompare(b.family)
+      else {
+        const order = { low: 1, medium: 2, high: 3 } as const
+        cmp = order[a.risk] - order[b.risk]
+      }
+      return clusterSortDir === 'asc' ? cmp : -cmp
+    })
+
+    return sorted
+  }, [clusterSummaries, clusterSearch, clusterSortBy, clusterSortDir])
+
+  const visibleClusters = useMemo(() => (showAllClusters ? filteredSortedClusters : filteredSortedClusters.slice(0, 24)), [showAllClusters, filteredSortedClusters])
+
   const clusterChartOption = useMemo(() => {
-    const points = clusters.slice(0, 24).map((c: any, i: number) => [i, c.length, c[0]?.meta?.title || ''])
+    const points = visibleClusters.map((c) => [c.id, c.size, c.family, c.index])
     return {
       backgroundColor: 'transparent',
-      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster', nameTextStyle: { color: '#8ca4d4' } },
+      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster ID', nameTextStyle: { color: '#8ca4d4' } },
       yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Size', nameTextStyle: { color: '#8ca4d4' } },
       tooltip: { formatter: (p: any) => `Cluster ${p.data[0]}<br/>Size: ${p.data[1]}<br/>${p.data[2]}` },
       series: [{ type: 'scatter', symbolSize: (v: any) => Math.max(10, Math.min(44, v[1] * 1.3)), data: points, itemStyle: { color: '#57d9ff' } }],
     }
-  }, [clusters])
+  }, [visibleClusters])
 
   const suiteChartOption = useMemo(() => ({
     backgroundColor: 'transparent',
@@ -206,7 +242,7 @@ function App() {
   const selectedCluster = selectedClusterIndex !== null ? clusters[selectedClusterIndex] : null
   const selectedClusterRows: TestCaseRow[] = (selectedCluster || []).map((x: any) => x.meta).filter(Boolean)
   const totalClusterCount = clusters.length
-  const visibleClusterCount = Math.min(clusters.length, 24)
+  const visibleClusterCount = visibleClusters.length
   const totalPopulation = semanticVectors.length || rows.length
   const selectedClusterFamilyName = selectedClusterRows[0]?.title || selectedCluster?.[0]?.meta?.title || 'Unknown family'
   const clusterMeta = buildClusterMeta({
@@ -219,7 +255,7 @@ function App() {
 
   const clusterEvents = {
     click: (params: any) => {
-      const idx = Number(params?.data?.[0])
+      const idx = Number(params?.data?.[3])
       if (!Number.isNaN(idx)) {
         setSelectedClusterIndex(idx)
         setClusterPopupOpen(true)
@@ -574,6 +610,16 @@ function App() {
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         <Panel title="Semantic Cluster Map" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setShowAllClusters(false)} style={btn(!showAllClusters ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setShowAllClusters(true)} style={btn(showAllClusters ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input
+              value={clusterSearch}
+              onChange={(e) => setClusterSearch(e.target.value)}
+              placeholder="Search cluster/family..."
+              style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 180 }}
+            />
+          </div>
           <ReactECharts option={clusterChartOption} onEvents={clusterEvents} style={{ height: 320 }} />
           <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>
             Click a bubble to inspect that cluster and download its test cases.
@@ -584,14 +630,50 @@ function App() {
         </Panel>
       </section>
 
-      <Panel title="Cluster Interaction" style={{ marginTop: 16 }}>
+      <Panel title="All Clusters" style={{ marginTop: 16 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+          <label style={{ fontSize: 12, color: '#a9bee9' }}>Sort by:</label>
+          <select value={clusterSortBy} onChange={(e) => setClusterSortBy(e.target.value as any)} style={{ background: '#111c34', color: '#d7e5ff', border: '1px solid #324978', borderRadius: 8, padding: '6px 8px' }}>
+            <option value="size">Size</option>
+            <option value="risk">Risk</option>
+            <option value="family">Family</option>
+            <option value="id">Cluster ID</option>
+          </select>
+          <select value={clusterSortDir} onChange={(e) => setClusterSortDir(e.target.value as any)} style={{ background: '#111c34', color: '#d7e5ff', border: '1px solid #324978', borderRadius: 8, padding: '6px 8px' }}>
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+          <span style={{ fontSize: 12, color: '#9fb2df' }}>Showing {visibleClusterCount}/{filteredSortedClusters.length} filtered clusters ({totalClusterCount} total)</span>
+        </div>
+
+        <div style={{ maxHeight: 260, overflow: 'auto', border: '1px solid #2a3b62', borderRadius: 10 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ color: '#9fb2df', position: 'sticky', top: 0, background: '#101a30' }}>
+                <th style={th}>Cluster ID</th><th style={th}>Family</th><th style={th}>Size</th><th style={th}>Risk</th><th style={th}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleClusters.map((c) => (
+                <tr key={c.index}>
+                  <td style={td}>{c.id}</td>
+                  <td style={td}>{c.family}</td>
+                  <td style={td}>{c.size}/{totalPopulation}</td>
+                  <td style={td}>{c.risk}</td>
+                  <td style={td}><button onClick={() => { setSelectedClusterIndex(c.index); setClusterPopupOpen(true) }} style={{ ...btn('#2a6cff'), padding: '6px 10px', fontSize: 12 }}>Open</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
         {selectedCluster ? (
-          <div style={{ color: '#9fb2df', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ color: '#9fb2df', fontSize: 13, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>Selected Cluster ID {clusterMeta.selectedClusterDisplayIndex} · Family: {clusterMeta.familyName} · Size: {clusterMeta.sizeLabel} · Total clusters: {clusterMeta.totalClusterCount}</span>
             <button onClick={() => setClusterPopupOpen(true)} style={btn('#2a6cff')}>Open Cluster Details</button>
           </div>
         ) : (
-          <div style={{ color: '#9fb2df', fontSize: 13 }}>No cluster selected yet. Click a bubble in the Semantic Cluster Map.</div>
+          <div style={{ color: '#9fb2df', fontSize: 13, marginTop: 10 }}>No cluster selected yet. Click a bubble in the map or a row in this table.</div>
         )}
       </Panel>
 
