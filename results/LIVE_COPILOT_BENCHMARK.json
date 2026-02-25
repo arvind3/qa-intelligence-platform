@@ -1,0 +1,78 @@
+{
+  "count": 10,
+  "ok": 10,
+  "avgMs": 4256,
+  "avgQuality": 9,
+  "results": [
+    {
+      "q": "Which duplicate families should we consolidate first?",
+      "status": "ok",
+      "ms": 29072,
+      "quality": 30,
+      "preview": "tc-eX-0: Checkout: validation on api [tags=checkout,validation,api,regression] - TC-EX-0: Checkout: validation on api [tags=checkout,validation,api,regression] "
+    },
+    {
+      "q": "What are the top 3 coverage gaps by business risk?",
+      "status": "ok",
+      "ms": 1193,
+      "quality": 0,
+      "preview": "X-rays and rays are the top 3 coverage gaps by business risk."
+    },
+    {
+      "q": "Which suites are over-indexed with redundant tests?",
+      "status": "ok",
+      "ms": 972,
+      "quality": 0,
+      "preview": "QA Intelligence"
+    },
+    {
+      "q": "Show tests with weak or inconsistent tagging.",
+      "status": "ok",
+      "ms": 905,
+      "quality": 0,
+      "preview": "tagging"
+    },
+    {
+      "q": "Which semantic clusters look too broad and need split?",
+      "status": "ok",
+      "ms": 3104,
+      "quality": 30,
+      "preview": "tc-eX-1: Checkout: validation on web [tags=checkout,validation,api,regression] - TC-EX-1: Orders: recovery,validation,web,regression] - TC-EX-3: Inventory: edge"
+    },
+    {
+      "q": "What is the fastest way to reduce regression runtime by 20%?",
+      "status": "ok",
+      "ms": 3089,
+      "quality": 30,
+      "preview": "TC-EX-0: Checkout: validation on api [tags=checkout,validation,api,regression] - TC-EX-0: Checkout: validation on api [tags=checkout,validation,api,regression] "
+    },
+    {
+      "q": "Which tests are best candidates for parameterization?",
+      "status": "ok",
+      "ms": 974,
+      "quality": 0,
+      "preview": "QA Intelligence Copilot"
+    },
+    {
+      "q": "What should be the next governance cleanup backlog?",
+      "status": "ok",
+      "ms": 990,
+      "quality": 0,
+      "preview": "QA Intelligence copilot"
+    },
+    {
+      "q": "Explain why entropy score changed after this dataset load.",
+      "status": "ok",
+      "ms": 1164,
+      "quality": 0,
+      "preview": "Detection: entropy score changed after this dataset load."
+    },
+    {
+      "q": "If we remove top duplicate clusters, what coverage risk remains?",
+      "status": "ok",
+      "ms": 1098,
+      "quality": 0,
+      "preview": "if we remove top duplicate clusters, what coverage risk remains?"
+    }
+  ]
+}
