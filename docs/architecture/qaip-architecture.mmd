@@ -6,7 +6,7 @@ flowchart TB
   end
 
   subgraph UI[Web UI - React/Vite]
-    U1[Generate 10k Unified Schema]
+    U1[Generate Unified Schema]
     U2[Upload JSON/CSV]
     U3[Build Embeddings + Clusters]
     U4[Analytics Dashboards and Cluster Maps]
@@ -33,7 +33,7 @@ flowchart TB
 
   subgraph CI[GitHub Actions]
     C1[Quality Gates]
-    C2[Deploy Pages root + expanded-solution]
+    C2[Deploy Pages environments]
   end
 
   O1 --> O2
