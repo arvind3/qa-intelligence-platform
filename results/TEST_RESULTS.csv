@@ -1,3 +1,4 @@
 check,status,duration_ms
-"Unit + Eval Tests (Vitest)",PASS,1359
-"E2E UX Tests (Playwright)",PASS,5724
+"Unit + Eval Tests (Vitest)",PASS,1376
+"E2E UX Tests (Playwright)",PASS,5462
+"Live Copilot Benchmark (Published URL)",PASS,129236

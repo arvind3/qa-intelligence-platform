@@ -21,6 +21,7 @@ function run(name, cmd) {
 const checks = [
   run('Unit + Eval Tests (Vitest)', 'npm run test:unit'),
   run('E2E UX Tests (Playwright)', 'npm run test:e2e'),
+  run('Live Copilot Benchmark (Published URL)', 'npm run test:live-benchmark'),
 ]
 
 const allPass = checks.every((c) => c.status === 'PASS')
