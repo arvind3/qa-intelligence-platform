@@ -96,6 +96,8 @@ function App() {
   const [answer, setAnswer] = useState('')
   const [isAsking, setIsAsking] = useState(false)
   const [askProgress, setAskProgress] = useState(0)
+  const [askStage, setAskStage] = useState('Idle')
+  const askRequestIdRef = useRef(0)
   const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
   const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
   const [buildProgress, setBuildProgress] = useState(0)
@@ -246,8 +248,12 @@ function App() {
 
   const onAsk = async () => {
     if (isAsking) return
+    const reqId = Date.now()
+    askRequestIdRef.current = reqId
+
     setIsAsking(true)
     setAskProgress(10)
+    setAskStage('Preparing context')
     setAnswer('')
 
     let context: TestCaseRow[] = []
@@ -258,12 +264,16 @@ function App() {
       context = hits.map((h: any) => h.doc?.meta).filter(Boolean)
     }
 
+    if (askRequestIdRef.current !== reqId) return
+
     setAskProgress(35)
+    setAskStage('Retrieving evidence')
 
     if (!context.length) context = (clusters[0] || []).slice(0, 10).map((x: any) => x.meta)
     if (!context.length) context = rows.slice(0, 10)
 
     setAskProgress(60)
+    setAskStage('Checking local LLM runtime')
 
     if (!isReasoningReady()) {
       setLlmStatus('Starting local LLM for Copilot...')
@@ -271,29 +281,50 @@ function App() {
         const llmMode = await initReasoningEngine()
         setLlmStatus(`Copilot mode: ${llmMode}`)
       } catch (err: any) {
+        if (askRequestIdRef.current !== reqId) return
         setAskProgress(100)
         setAnswer(`Copilot unavailable on this device/browser. Semantic KPIs still work.\n\nReason: ${String(err?.message || err)}`)
         setIsAsking(false)
         setAskProgress(0)
+        setAskStage('Idle')
         return
       }
     }
 
     setAskProgress(78)
+    setAskStage('Generating answer')
 
     try {
-      const res = await askCopilot(question, context)
+      const timeoutMs = 30000
+      const timed = await Promise.race([
+        askCopilot(question, context),
+        new Promise<string>((_, reject) => setTimeout(() => reject(new Error(`Copilot timed out after ${timeoutMs / 1000}s. Try a shorter question or reduce context size.`)), timeoutMs)),
+      ])
+
+      if (askRequestIdRef.current !== reqId) return
       setAskProgress(100)
-      setAnswer(res)
+      setAnswer(timed)
     } catch (err: any) {
+      if (askRequestIdRef.current !== reqId) return
       setAskProgress(100)
       setAnswer(String(err?.message || err))
     } finally {
-      setTimeout(() => {
-        setIsAsking(false)
-        setAskProgress(0)
-      }, 250)
+      if (askRequestIdRef.current === reqId) {
+        setTimeout(() => {
+          setIsAsking(false)
+          setAskProgress(0)
+          setAskStage('Idle')
+        }, 250)
+      }
     }
+  }
+
+  const onCancelAsk = () => {
+    askRequestIdRef.current = 0
+    setIsAsking(false)
+    setAskProgress(0)
+    setAskStage('Cancelled')
+    setAnswer((prev) => prev || 'Request cancelled by user.')
   }
 
   const downloadKpiMatching = (label: string) => {
@@ -452,11 +483,12 @@ function App() {
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={question} onChange={(e) => setQuestion(e.target.value)} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff' }} />
           <button onClick={onAsk} disabled={isAsking} style={btn('#2a6cff', isAsking)}>{isAsking ? 'Thinking...' : 'Ask'}</button>
+          <button onClick={onCancelAsk} disabled={!isAsking} style={btn('#8f3242', !isAsking)}>Cancel</button>
         </div>
 
         {isAsking && (
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12, color: '#9fb2df', marginBottom: 5 }}>Processing with local LLM...</div>
+            <div style={{ fontSize: 12, color: '#9fb2df', marginBottom: 5 }}>{askStage} (local LLM)</div>
             <div style={{ width: '100%', height: 8, borderRadius: 999, background: '#1b2a47', border: '1px solid #324978', overflow: 'hidden' }}>
               <div style={{ width: `${askProgress}%`, height: '100%', background: 'linear-gradient(90deg,#7c5cff,#4ad0ff)' }} />
             </div>
