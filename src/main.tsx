@@ -689,7 +689,7 @@ function App() {
     const defects = unified.defects || []
     const linkedDefects = defects.filter((d: any) => d.linked_test_id && d.linked_requirement_id).length
     const testLinkagePct = Math.round((linkedTests / totalTests) * 100)
-    const defectLinkagePct = defects.length ? Math.round((linkedDefects / defects.length) * 100) : 100
+    const defectLinkagePct = defects.length ? Math.round((linkedDefects / defects.length) * 100) : 0
     return { totalTests, linkedTests, defectsTotal: defects.length, linkedDefects, testLinkagePct, defectLinkagePct }
   }, [unified])
 
@@ -1276,7 +1276,11 @@ function App() {
             <div style={{ background: '#0f1b33', border: '1px solid #35528a', borderRadius: 10, padding: 10 }}>
               <div style={{ color: '#8fe7b8', fontSize: 12, fontWeight: 700 }}>Defect Linkage %</div>
               <div style={{ color: '#f4fbff', fontSize: 20, fontWeight: 800 }}>{traceabilityStats.defectLinkagePct}%</div>
-              <div style={{ color: '#b8c9ef', fontSize: 12 }}>Defects linked to test + requirement / Total defects = {traceabilityStats.linkedDefects.toLocaleString()} / {traceabilityStats.defectsTotal.toLocaleString()}</div>
+              <div style={{ color: '#b8c9ef', fontSize: 12 }}>
+                {traceabilityStats.defectsTotal === 0
+                  ? 'No defects in current dataset (linkage shown as 0%)'
+                  : `Defects linked to test + requirement / Total defects = ${traceabilityStats.linkedDefects.toLocaleString()} / ${traceabilityStats.defectsTotal.toLocaleString()}`}
+              </div>
             </div>
           </div>
         </Panel>
