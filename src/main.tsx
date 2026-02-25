@@ -77,6 +77,30 @@ function downloadJson(rows: TestCaseRow[], fileName = 'generated_testcases.json'
   URL.revokeObjectURL(url)
 }
 
+function downloadCsv(rows: TestCaseRow[], fileName = 'cluster_testcases.csv') {
+  const header = ['test_case_id', 'test_plan_id', 'test_suite_id', 'title', 'description', 'steps', 'tags']
+  const body = rows.map((r) => [
+    r.test_case_id,
+    r.test_plan_id,
+    r.test_suite_id,
+    r.title,
+    r.description,
+    r.steps,
+    (r.tags || []).join('|'),
+  ])
+  const csv = [header, ...body]
+    .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 function textKey(r: TestCaseRow) {
   return `${r.title}|${r.description}|${r.steps}`.toLowerCase().replace(/\s+/g, ' ').trim()
 }
@@ -120,6 +144,8 @@ function App() {
   const [semanticVectors, setSemanticVectors] = useState<any[]>([])
   const [popup, setPopup] = useState<{ title: string; body: string } | null>(null)
   const [modelProfile, setModelProfileState] = useState<ModelProfile>(getModelProfile())
+  const [selectedClusterIndex, setSelectedClusterIndex] = useState<number | null>(null)
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const cancelBuildRef = useRef(false)
 
   useEffect(() => {
@@ -135,7 +161,14 @@ function App() {
         }
       }
     }, 900)
-    return () => clearTimeout(t)
+
+    const onResize = () => setIsMobile(window.innerWidth < 900)
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('resize', onResize)
+    }
   }, [])
 
   const kpis = useMemo(() => computeKpis(rows), [rows])
@@ -168,11 +201,22 @@ function App() {
     series: [{ type: 'bar', data: suiteDist.map((r: any) => Number(r.c)), itemStyle: { color: '#6d8eff' }, barMaxWidth: 24 }],
   }), [suiteDist])
 
+  const selectedCluster = selectedClusterIndex !== null ? clusters[selectedClusterIndex] : null
+  const selectedClusterRows: TestCaseRow[] = (selectedCluster || []).map((x: any) => x.meta).filter(Boolean)
+
+  const clusterEvents = {
+    click: (params: any) => {
+      const idx = Number(params?.data?.[0])
+      if (!Number.isNaN(idx)) setSelectedClusterIndex(idx)
+    },
+  }
+
   const loadRows = async (data: TestCaseRow[], source: string) => {
     setRows(data)
     setSemanticReady(false)
     setClusters([])
     setSemanticVectors([])
+    setSelectedClusterIndex(null)
     setStatus(`Loaded ${data.length.toLocaleString()} tests from ${source}`)
     await loadTestsToDuckDB(data)
     setSuiteDist((await queryDashboardStats()).suiteDist)
@@ -195,6 +239,7 @@ function App() {
     if (!rows.length || isBuildingSemantic) return
     setIsBuildingSemantic(true)
     setSemanticReady(false)
+    setSelectedClusterIndex(null)
     cancelBuildRef.current = false
     setBuildProgress(0)
 
@@ -509,14 +554,49 @@ function App() {
         )})}
       </section>
 
-      <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         <Panel title="Semantic Cluster Map" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
-          <ReactECharts option={clusterChartOption} style={{ height: 320 }} />
+          <ReactECharts option={clusterChartOption} onEvents={clusterEvents} style={{ height: 320 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>
+            Click a bubble to inspect that cluster and download its test cases.
+          </div>
         </Panel>
         <Panel title="Suite Distribution (DuckDB)" onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
           <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
         </Panel>
       </section>
+
+      <Panel title="Cluster Details" style={{ marginTop: 16 }}>
+        {selectedCluster ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              <div style={{ color: '#b8cbf5', fontSize: 13 }}>
+                Cluster #{selectedClusterIndex} · {selectedClusterRows.length} test cases
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => downloadJson(selectedClusterRows, `cluster_${selectedClusterIndex}_testcases.json`)} style={btn('#2a6cff', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download JSON</button>
+                <button onClick={() => downloadCsv(selectedClusterRows, `cluster_${selectedClusterIndex}_testcases.csv`)} style={btn('#245f4a', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download CSV</button>
+              </div>
+            </div>
+            <div style={{ maxHeight: 300, overflow: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ color: '#9fb2df' }}>
+                    <th style={th}>ID</th><th style={th}>Title</th><th style={th}>Suite</th><th style={th}>Tags</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedClusterRows.map((r) => (
+                    <tr key={r.test_case_id}><td style={td}>{r.test_case_id}</td><td style={td}>{r.title}</td><td style={td}>{r.test_suite_id}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div style={{ color: '#9fb2df', fontSize: 13 }}>No cluster selected yet. Click a bubble in the Semantic Cluster Map.</div>
+        )}
+      </Panel>
 
       <Panel title="Sample Generated Test Cases" style={{ marginTop: 16 }}>
         <div style={{ maxHeight: 220, overflow: 'auto' }}>
