@@ -1,4 +1,10 @@
 flowchart TB
+  subgraph Overview[Product Overview]
+    O1[Title: QualiGraph Architecture Overview]
+    O2[Objective: Unify requirements, test cases, execution runs, and defects into one quality intelligence platform]
+    O3[Target Audience: QA Leaders, Engineering Managers, Product Managers, Enterprise Leadership, Solution Architects]
+  end
+
   subgraph UI[Web UI - React/Vite]
     U1[Generate 10k Unified Schema]
     U2[Upload JSON/CSV]
@@ -29,6 +35,10 @@ flowchart TB
     C1[Quality Gates]
     C2[Deploy Pages root + expanded-solution]
   end
+
+  O1 --> O2
+  O2 --> O3
+  O3 --> UI
 
   U1 --> D1
   U2 --> D1
