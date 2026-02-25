@@ -8,9 +8,13 @@ let activeModel = ''
 const WEBLLM_MODELS = [
   'Qwen2.5-1.5B-Instruct-q4f16_1-MLC',
   'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+  'Phi-3.5-mini-instruct-q4f16_1-MLC',
 ]
 
-const HF_FALLBACK_MODEL = 'Xenova/distilgpt2'
+const HF_FALLBACK_MODELS = [
+  'Xenova/flan-t5-small',
+  'Xenova/flan-t5-base',
+]
 
 export async function initReasoningEngine() {
   if (webllmEngine || hfGenerator) return `${activeMode}:${activeModel}`
@@ -34,15 +38,21 @@ export async function initReasoningEngine() {
     errors.push(`webllm import => ${err?.message || 'failed'}`)
   }
 
-  // 2) CPU/WASM fallback local model (transformers.js)
+  // 2) CPU/WASM fallback local model (transformers.js, free + lightweight)
   try {
     const mod = await import('@huggingface/transformers')
-    hfGenerator = await mod.pipeline('text-generation', HF_FALLBACK_MODEL)
-    activeMode = 'cpu-wasm'
-    activeModel = HF_FALLBACK_MODEL
-    return `${activeMode}:${activeModel}`
+    for (const model of HF_FALLBACK_MODELS) {
+      try {
+        hfGenerator = await mod.pipeline('text2text-generation', model)
+        activeMode = 'cpu-wasm'
+        activeModel = model
+        return `${activeMode}:${activeModel}`
+      } catch (err: any) {
+        errors.push(`hf fallback ${model} => ${err?.message || 'init failed'}`)
+      }
+    }
   } catch (err: any) {
-    errors.push(`hf fallback ${HF_FALLBACK_MODEL} => ${err?.message || 'init failed'}`)
+    errors.push(`hf import => ${err?.message || 'failed'}`)
   }
 
   activeMode = 'unavailable'
@@ -86,6 +96,8 @@ export async function askCopilot(question: string, context: TestCaseRow[]) {
     do_sample: false,
   })
 
-  const text = Array.isArray(out) ? out[0]?.generated_text || '' : ''
-  return text.replace(prompt, '').trim() || 'No response from local CPU model.'
+  const text = Array.isArray(out)
+    ? out[0]?.generated_text || out[0]?.summary_text || out[0]?.text || ''
+    : ''
+  return text.trim() || 'No response from local CPU model.'
 }
