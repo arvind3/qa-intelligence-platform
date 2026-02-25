@@ -1157,7 +1157,7 @@ function App() {
       </section>
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-        <Panel title="Semantic Cluster Map (Test Cases)" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
+        <Panel title="Semantic Cluster Map (Test Cases)" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })} style={{ minHeight: 420 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
             <button onClick={() => setShowAllClusters(false)} style={btn(!showAllClusters ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
             <button onClick={() => setShowAllClusters(true)} style={btn(showAllClusters ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
@@ -1174,15 +1174,39 @@ function App() {
           </div>
         </Panel>
 
-        <Panel title="Requirement Cluster Map" onInfo={() => setPopup({ title: 'Requirement Cluster Map', body: CHART_HELP['Requirement Cluster Map'] })}>
+        <Panel title="Requirement Cluster Map" onInfo={() => setPopup({ title: 'Requirement Cluster Map', body: CHART_HELP['Requirement Cluster Map'] })} style={{ minHeight: 420 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
             <button onClick={() => setReqShowAll(false)} style={btn(!reqShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
             <button onClick={() => setReqShowAll(true)} style={btn(reqShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
             <input value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} placeholder="Search req cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
             <button onClick={() => reqVisible[0] && setEntityClusterPopup({ kind: 'requirement', item: reqVisible[0] })} style={btn('#2a6cff', !reqVisible.length)} disabled={!reqVisible.length}>Open first</button>
           </div>
-          <ReactECharts option={requirementClusterOption} onEvents={requirementClusterEvents} style={{ height: 300 }} />
+          <ReactECharts option={requirementClusterOption} onEvents={requirementClusterEvents} style={{ height: 320 }} />
           <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {reqVisible.length}/{requirementClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
+        </Panel>
+      </section>
+
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+        <Panel title="Defect Cluster Map" onInfo={() => setPopup({ title: 'Defect Cluster Map', body: CHART_HELP['Defect Cluster Map'] })} style={{ minHeight: 420 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setDefectShowAll(false)} style={btn(!defectShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setDefectShowAll(true)} style={btn(defectShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input value={defectSearch} onChange={(e) => setDefectSearch(e.target.value)} placeholder="Search defect cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
+            <button onClick={() => defectVisible[0] && setEntityClusterPopup({ kind: 'defect', item: defectVisible[0] })} style={btn('#2a6cff', !defectVisible.length)} disabled={!defectVisible.length}>Open first</button>
+          </div>
+          <ReactECharts option={defectClusterOption} onEvents={defectClusterEvents} style={{ height: 320 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {defectVisible.length}/{defectClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
+        </Panel>
+
+        <Panel title="Unified Cluster Map" onInfo={() => setPopup({ title: 'Unified Cluster Map', body: CHART_HELP['Unified Cluster Map'] })} style={{ minHeight: 420 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setUnifiedShowAll(false)} style={btn(!unifiedShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setUnifiedShowAll(true)} style={btn(unifiedShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input value={unifiedSearch} onChange={(e) => setUnifiedSearch(e.target.value)} placeholder="Search unified cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
+            <button onClick={() => unifiedVisible[0] && setEntityClusterPopup({ kind: 'unified', item: unifiedVisible[0] })} style={btn('#2a6cff', !unifiedVisible.length)} disabled={!unifiedVisible.length}>Open first</button>
+          </div>
+          <ReactECharts option={unifiedClusterOption} onEvents={unifiedClusterEvents} style={{ height: 320 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {unifiedVisible.length}/{unifiedClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
         </Panel>
       </section>
 
@@ -1204,7 +1228,7 @@ function App() {
         </Panel>
       </section>
 
-      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+      <section style={{ display: 'none' }}>
         <Panel title="Defect Cluster Map" onInfo={() => setPopup({ title: 'Defect Cluster Map', body: CHART_HELP['Defect Cluster Map'] })}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
             <button onClick={() => setDefectShowAll(false)} style={btn(!defectShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
