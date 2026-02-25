@@ -312,6 +312,7 @@ function App() {
   }, [])
 
   const kpis = useMemo(() => computeKpis(rows), [rows])
+  const unified = useMemo(() => buildUnifiedSchema(rows), [rows])
   const runtimeMode = getReasoningMode()
 
   const kpiItems = [
@@ -373,6 +374,110 @@ function App() {
     series: [{ type: 'bar', data: suiteDist.map((r: any) => Number(r.c)), itemStyle: { color: '#6d8eff' }, barMaxWidth: 24 }],
   }), [suiteDist])
 
+  const featureStats = useMemo(() => {
+    const map = new Map<string, { requirements: number; tests: number; defects: number }>()
+    const touch = (feature: string) => {
+      if (!map.has(feature)) map.set(feature, { requirements: 0, tests: 0, defects: 0 })
+      return map.get(feature)!
+    }
+
+    for (const r of unified.requirements || []) {
+      const f = String(r.tags?.[0] || 'general')
+      touch(f).requirements += 1
+    }
+    for (const t of unified.test_cases || []) {
+      const f = String(t.tags?.[0] || 'general')
+      touch(f).tests += 1
+    }
+    for (const d of unified.defects || []) {
+      const req = String(d.linked_requirement_id || '')
+      const f = req.startsWith('REQ-') ? req.replace('REQ-', '').toLowerCase() : 'general'
+      touch(f).defects += 1
+    }
+
+    return [...map.entries()]
+      .map(([feature, v]) => ({ feature, ...v }))
+      .sort((a, b) => b.tests - a.tests)
+      .slice(0, 12)
+  }, [unified])
+
+  const executionStatusOption = useMemo(() => {
+    const counts = { passed: 0, failed: 0, blocked: 0 } as Record<string, number>
+    for (const e of unified.executions || []) counts[String(e.execution_status || 'blocked')] = (counts[String(e.execution_status || 'blocked')] || 0) + 1
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      legend: { bottom: 0, textStyle: { color: '#a4bbec' } },
+      series: [{
+        type: 'pie',
+        radius: ['45%', '72%'],
+        data: [
+          { value: counts.passed || 0, name: 'Passed' },
+          { value: counts.failed || 0, name: 'Failed' },
+          { value: counts.blocked || 0, name: 'Blocked' },
+        ],
+      }],
+    }
+  }, [unified])
+
+  const featureCoverageOption = useMemo(() => ({
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis' },
+    legend: { textStyle: { color: '#a4bbec' } },
+    xAxis: { type: 'category', data: featureStats.map((f) => f.feature), axisLabel: { color: '#a4bbec', rotate: 20 } },
+    yAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
+    series: [
+      { name: 'Requirements', type: 'bar', data: featureStats.map((f) => f.requirements), itemStyle: { color: '#57d9ff' } },
+      { name: 'Test Cases', type: 'bar', data: featureStats.map((f) => f.tests), itemStyle: { color: '#6d8eff' } },
+      { name: 'Defects', type: 'bar', data: featureStats.map((f) => f.defects), itemStyle: { color: '#ff7c8f' } },
+    ],
+  }), [featureStats])
+
+  const relationshipFlowOption = useMemo(() => {
+    const planCount = new Map<string, number>()
+    const suiteCount = new Map<string, number>()
+    const defectBySuite = new Map<string, number>()
+
+    for (const t of unified.test_cases || []) {
+      const p = String(t.test_plan_id || 'P-NA')
+      const s = String(t.test_suite_id || 'S-NA')
+      planCount.set(p, (planCount.get(p) || 0) + 1)
+      suiteCount.set(s, (suiteCount.get(s) || 0) + 1)
+    }
+    for (const d of unified.defects || []) {
+      const test = (unified.test_cases || []).find((t: any) => t.test_id === d.linked_test_id)
+      const s = String(test?.test_suite_id || 'S-NA')
+      defectBySuite.set(s, (defectBySuite.get(s) || 0) + 1)
+    }
+
+    const topPlans = [...planCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+    const topSuites = [...suiteCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
+
+    const nodes = [
+      ...topPlans.map(([p]) => ({ name: `Plan ${p}` })),
+      ...topSuites.map(([s]) => ({ name: `Suite ${s}` })),
+      { name: 'Defects' },
+    ]
+
+    const links: any[] = []
+    for (const [p] of topPlans) {
+      for (const [s, c] of topSuites) {
+        const count = (unified.test_cases || []).filter((t: any) => t.test_plan_id === p && t.test_suite_id === s).length
+        if (count > 0) links.push({ source: `Plan ${p}`, target: `Suite ${s}`, value: count })
+      }
+    }
+    for (const [s] of topSuites) {
+      const d = defectBySuite.get(s) || 0
+      if (d > 0) links.push({ source: `Suite ${s}`, target: 'Defects', value: d })
+    }
+
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'item' },
+      series: [{ type: 'sankey', data: nodes, links, lineStyle: { color: 'gradient', curveness: 0.5 }, label: { color: '#d7e5ff' } }],
+    }
+  }, [unified])
+
   const selectedCluster = selectedClusterIndex !== null ? clusters[selectedClusterIndex] : null
   const selectedClusterRows: TestCaseRow[] = (selectedCluster || []).map((x: any) => x.meta).filter(Boolean)
   const totalClusterCount = clusters.length
@@ -409,7 +514,7 @@ function App() {
     setSuiteDist((await queryDashboardStats()).suiteDist)
   }
 
-  const onGenerate = async () => loadRows(generateSyntheticTests(10000), 'synthetic generator')
+  const onGenerate = async () => loadRows(generateSyntheticTests(10000), 'synthetic unified schema generator')
 
   const onUpload: React.ChangeEventHandler<HTMLInputElement> = async (e) => {
     const file = e.target.files?.[0]
@@ -683,10 +788,10 @@ function App() {
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <button onClick={onGenerate} style={btn('#2a6cff')}>Generate 10,000 High-Quality Tests</button>
-        <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
-        <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Generated Tests</button>
-        <button onClick={() => downloadJson(buildUnifiedSchema(rows), 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Unified Schema Bundle</button>
+        <button onClick={onGenerate} style={btn('#2a6cff')}>Generate 10,000 Unified Schema Records</button>
+        <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload Test Data JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
+        <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Test Cases</button>
+        <button onClick={() => downloadJson(unified, 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Complete Schema Bundle</button>
 
         <div style={{ display: 'inline-flex', border: '1px solid #3a5388', borderRadius: 10, overflow: 'hidden' }}>
           <button onClick={() => setBuildMode('quick')} style={{ ...btn(buildMode === 'quick' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Quick (2k)</button>
@@ -700,6 +805,11 @@ function App() {
       </div>
 
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
+      {!!rows.length && (
+        <div style={{ color: '#b8c9ef', marginBottom: 8, fontSize: 12 }}>
+          Schema snapshot: {unified.summary.requirements} requirements · {unified.summary.test_cases} tests · {unified.summary.executions} runs · {unified.summary.defects} defects
+        </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 10px', border: '1px solid #324978', borderRadius: 999, background: '#111c34', color: '#c7d8fa', fontSize: 12 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: runtimeMode.startsWith('webgpu') ? '#39d98a' : runtimeMode.startsWith('cpu-wasm') ? '#f0c14b' : '#f36f6f' }} />
@@ -750,7 +860,7 @@ function App() {
       </section>
 
       <section style={{ marginTop: 16, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-        <Panel title="Semantic Cluster Map" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
+        <Panel title="Semantic Cluster Map (Test Cases)" onInfo={() => setPopup({ title: 'Semantic Cluster Map', body: CHART_HELP['Semantic Cluster Map'] })}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
             <button onClick={() => setShowAllClusters(false)} style={btn(!showAllClusters ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
             <button onClick={() => setShowAllClusters(true)} style={btn(showAllClusters ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
@@ -768,6 +878,21 @@ function App() {
         </Panel>
         <Panel title="Suite Distribution (DuckDB)" onInfo={() => setPopup({ title: 'Suite Distribution (DuckDB)', body: CHART_HELP['Suite Distribution (DuckDB)'] })}>
           <ReactECharts option={suiteChartOption} style={{ height: 320 }} />
+        </Panel>
+      </section>
+
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+        <Panel title="Requirement / Test / Defect Coverage by Feature">
+          <ReactECharts option={featureCoverageOption} style={{ height: 320 }} />
+        </Panel>
+        <Panel title="Execution Outcome Mix">
+          <ReactECharts option={executionStatusOption} style={{ height: 320 }} />
+        </Panel>
+      </section>
+
+      <section style={{ marginTop: 12 }}>
+        <Panel title="Consolidated Relationship Flow (Plan → Suite → Defects)">
+          <ReactECharts option={relationshipFlowOption} style={{ height: 360 }} />
         </Panel>
       </section>
 
