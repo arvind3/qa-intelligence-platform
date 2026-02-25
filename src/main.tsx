@@ -145,6 +145,7 @@ function App() {
   const [popup, setPopup] = useState<{ title: string; body: string } | null>(null)
   const [modelProfile, setModelProfileState] = useState<ModelProfile>(getModelProfile())
   const [selectedClusterIndex, setSelectedClusterIndex] = useState<number | null>(null)
+  const [clusterPopupOpen, setClusterPopupOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const cancelBuildRef = useRef(false)
 
@@ -207,7 +208,10 @@ function App() {
   const clusterEvents = {
     click: (params: any) => {
       const idx = Number(params?.data?.[0])
-      if (!Number.isNaN(idx)) setSelectedClusterIndex(idx)
+      if (!Number.isNaN(idx)) {
+        setSelectedClusterIndex(idx)
+        setClusterPopupOpen(true)
+      }
     },
   }
 
@@ -217,6 +221,7 @@ function App() {
     setClusters([])
     setSemanticVectors([])
     setSelectedClusterIndex(null)
+    setClusterPopupOpen(false)
     setStatus(`Loaded ${data.length.toLocaleString()} tests from ${source}`)
     await loadTestsToDuckDB(data)
     setSuiteDist((await queryDashboardStats()).suiteDist)
@@ -240,6 +245,7 @@ function App() {
     setIsBuildingSemantic(true)
     setSemanticReady(false)
     setSelectedClusterIndex(null)
+    setClusterPopupOpen(false)
     cancelBuildRef.current = false
     setBuildProgress(0)
 
@@ -566,33 +572,12 @@ function App() {
         </Panel>
       </section>
 
-      <Panel title="Cluster Details" style={{ marginTop: 16 }}>
+      <Panel title="Cluster Interaction" style={{ marginTop: 16 }}>
         {selectedCluster ? (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-              <div style={{ color: '#b8cbf5', fontSize: 13 }}>
-                Cluster #{selectedClusterIndex} · {selectedClusterRows.length} test cases
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button onClick={() => downloadJson(selectedClusterRows, `cluster_${selectedClusterIndex}_testcases.json`)} style={btn('#2a6cff', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download JSON</button>
-                <button onClick={() => downloadCsv(selectedClusterRows, `cluster_${selectedClusterIndex}_testcases.csv`)} style={btn('#245f4a', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download CSV</button>
-              </div>
-            </div>
-            <div style={{ maxHeight: 300, overflow: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ color: '#9fb2df' }}>
-                    <th style={th}>ID</th><th style={th}>Title</th><th style={th}>Suite</th><th style={th}>Tags</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedClusterRows.map((r) => (
-                    <tr key={r.test_case_id}><td style={td}>{r.test_case_id}</td><td style={td}>{r.title}</td><td style={td}>{r.test_suite_id}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <div style={{ color: '#9fb2df', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>Selected Cluster #{selectedClusterIndex} ({selectedClusterRows.length} tests). Open detailed popup for explanation and downloads.</span>
+            <button onClick={() => setClusterPopupOpen(true)} style={btn('#2a6cff')}>Open Cluster Details</button>
+          </div>
         ) : (
           <div style={{ color: '#9fb2df', fontSize: 13 }}>No cluster selected yet. Click a bubble in the Semantic Cluster Map.</div>
         )}
@@ -642,6 +627,43 @@ function App() {
 
         <pre style={{ marginTop: 10, background: '#0b1220', border: '1px solid #324978', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', color: '#c9d7f8' }}>{answer || (isAsking ? 'Working on your question...' : 'No response yet.')}</pre>
       </Panel>
+
+      {clusterPopupOpen && selectedCluster && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,8,20,0.78)', display: 'grid', placeItems: 'center', zIndex: 45 }}>
+          <div style={{ width: 'min(980px, 96vw)', maxHeight: '88vh', overflow: 'auto', background: '#101a30', border: '1px solid #314a79', borderRadius: 14, padding: 16, boxShadow: '0 20px 70px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0 }}>Cluster #{selectedClusterIndex} Details</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => downloadJson(selectedClusterRows, `cluster_${selectedClusterIndex}_testcases.json`)} style={btn('#2a6cff', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download JSON</button>
+                <button onClick={() => downloadCsv(selectedClusterRows, `cluster_${selectedClusterIndex}_testcases.csv`)} style={btn('#245f4a', !selectedClusterRows.length)} disabled={!selectedClusterRows.length}>Download CSV</button>
+                <button onClick={() => setClusterPopupOpen(false)} style={{ ...btn('#273e6c'), padding: '6px 10px' }}>Close</button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 10, color: '#c8d7f8', fontSize: 13, lineHeight: 1.55 }}>
+              <p><strong>Concept:</strong> A cluster is a semantic family of test cases that appear to validate similar intent.</p>
+              <p><strong>Technical:</strong> Cluster formed from embedding similarity (non-deterministic semantic grouping) after deterministic preprocessing.</p>
+              <p><strong>Business value:</strong> Helps stakeholders identify duplication hotspots, consolidation opportunities, and potential test-suite cost reduction.</p>
+              <p><strong>Deterministic vs Non-deterministic:</strong> Hybrid — deterministic pipeline orchestration and indexing, non-deterministic semantic meaning from embeddings/LLM-assisted interpretation.</p>
+            </div>
+
+            <div style={{ marginTop: 10, maxHeight: '48vh', overflow: 'auto', border: '1px solid #2a3b62', borderRadius: 10 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ color: '#9fb2df', position: 'sticky', top: 0, background: '#101a30' }}>
+                    <th style={th}>ID</th><th style={th}>Title</th><th style={th}>Suite</th><th style={th}>Tags</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedClusterRows.map((r) => (
+                    <tr key={r.test_case_id}><td style={td}>{r.test_case_id}</td><td style={td}>{r.title}</td><td style={td}>{r.test_suite_id}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {popup && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,8,20,0.7)', display: 'grid', placeItems: 'center', zIndex: 40 }}>
