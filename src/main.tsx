@@ -30,7 +30,7 @@ const CHART_HELP: Record<string, string> = {
   'Defect Cluster Map': `What this does: Clusters defects by recurring defect patterns.\n\nTechnical method: Defects are grouped by severity/status-linked themes and plotted as cluster bubbles.\n\nType: Hybrid (deterministic signals with pattern grouping).\n\nStakeholder value: Speeds root-cause prioritization and defect reduction strategy.`,
   'Unified Cluster Map': `What this does: Consolidated cluster map across requirements, tests, and defects.\n\nTechnical method: Entity points are projected into one map and color-coded by entity type with feature anchoring.\n\nType: Hybrid.\n\nStakeholder value: Gives leadership one integrated quality-intelligence view across lifecycle entities.`,
   'Requirement Coverage Heatmap': `What this does: Shows requirement-to-test coverage intensity.\n\nTechnical method: Link-table aggregation from requirement_test_links into a feature matrix.\n\nType: Deterministic.\n\nStakeholder value: Immediately surfaces under-tested requirement areas.`,
-  'Defect Leakage Funnel': `What this does: Shows flow from executions to failures to defects to open defects.\n\nTechnical method: Aggregated counts from execution_status and defect status.\n\nType: Deterministic.\n\nStakeholder value: Quantifies quality containment effectiveness.`,
+  'Defect Leakage Funnel': `What this does: Shows stage-by-stage quality leakage from executions to failed runs to defects to open defects.\n\nTechnical method: Deterministic aggregation + horizontal conversion bars with stage percentage labels.\n\nType: Deterministic.\n\nStakeholder value: Makes drop-off and unresolved risk instantly visible for release decisions.`,
   'Execution Reliability by Plan': `What this does: Passed/failed/blocked quality mix by test plan.\n\nTechnical method: Grouped execution rollups by plan and status.\n\nType: Deterministic.\n\nStakeholder value: Identifies unstable plans and release risk concentrations.`,
   'Traceability Completeness': `What this does: Measures linkage completeness across requirements, tests, and defects.\n\nTechnical method: Ratio checks over relationship tables and linked identifiers.\n\nType: Deterministic.\n\nStakeholder value: Governance readiness KPI for enterprise stakeholders.`,
 }
@@ -330,7 +330,7 @@ function App() {
   const [isGeneratingSchema, setIsGeneratingSchema] = useState(false)
   const [generateProgress, setGenerateProgress] = useState(0)
   const [isBuildingSemantic, setIsBuildingSemantic] = useState(false)
-  const [buildMode, setBuildMode] = useState<'quick' | 'full'>('quick')
+  const [buildMode] = useState<'quick' | 'full'>('full')
   const [buildProgress, setBuildProgress] = useState(0)
   const [semanticReady, setSemanticReady] = useState(false)
   const [semanticVectors, setSemanticVectors] = useState<any[]>([])
@@ -656,14 +656,53 @@ function App() {
     const failed = (unified.executions || []).filter((e: any) => e.execution_status === 'failed').length
     const defects = (unified.defects || []).length
     const openDefects = (unified.defects || []).filter((d: any) => ['new', 'open', 'in-progress'].includes(String(d.status))).length
+
+    const stages = [
+      { name: 'Executions', value: totalExec, color: '#5f8dff' },
+      { name: 'Failed Runs', value: failed, color: '#38d39f' },
+      { name: 'Defects Raised', value: defects, color: '#f0c14b' },
+      { name: 'Open Defects', value: openDefects, color: '#ff7c8f' },
+    ]
+
     return {
-      tooltip: { trigger: 'item' },
-      series: [{ type: 'funnel', top: 10, bottom: 10, left: '10%', width: '80%', label: { color: '#d7e5ff' }, data: [
-        { name: 'Executions', value: totalExec },
-        { name: 'Failed Runs', value: failed },
-        { name: 'Defects Raised', value: defects },
-        { name: 'Open Defects', value: openDefects },
-      ] }],
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (p: any) => {
+          const idx = p?.[0]?.dataIndex ?? 0
+          const cur = stages[idx]
+          const prev = idx === 0 ? stages[0].value : Math.max(1, stages[idx - 1].value)
+          const rate = idx === 0 ? 100 : ((cur.value / prev) * 100)
+          return `${cur.name}<br/>Count: ${cur.value.toLocaleString()}<br/>Stage conversion: ${rate.toFixed(1)}%`
+        },
+      },
+      grid: { left: 130, right: 26, top: 20, bottom: 24 },
+      xAxis: {
+        type: 'value',
+        axisLabel: { color: '#a4bbec' },
+        splitLine: { lineStyle: { color: '#20365f' } },
+      },
+      yAxis: {
+        type: 'category',
+        data: stages.map((s) => s.name),
+        axisLabel: { color: '#d9e7ff', fontSize: 12, fontWeight: 700 },
+      },
+      series: [{
+        type: 'bar',
+        data: stages.map((s) => ({ value: s.value, itemStyle: { color: s.color, borderRadius: [0, 8, 8, 0] } })),
+        barWidth: 20,
+        label: {
+          show: true,
+          position: 'right',
+          color: '#eaf2ff',
+          fontWeight: 700,
+          formatter: ({ value, dataIndex }: any) => {
+            const prev = dataIndex === 0 ? stages[0].value : Math.max(1, stages[dataIndex - 1].value)
+            const pct = dataIndex === 0 ? '100%' : `${((value / prev) * 100).toFixed(1)}%`
+            return `${Number(value).toLocaleString()}  (${pct})`
+          },
+        },
+      }],
     }
   }, [unified])
 
@@ -1067,33 +1106,28 @@ function App() {
 
   return (
     <main style={{ fontFamily: 'Segoe UI Variable, Segoe UI, sans-serif', padding: 24, background: 'radial-gradient(circle at 15% 0%, #12244f, #0a1220 45%)', color: '#e8f0ff', minHeight: '100vh' }}>
-      <h1 style={{ marginTop: 0, marginBottom: 6, fontSize: 34 }}>QualiGraph</h1>
-      <p style={{ marginTop: 0, marginBottom: 6, color: '#d9e7ff', fontWeight: 700, maxWidth: 980 }}>
-        The Quality Signal Platform for Product Delivery
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+        <img src="docs/branding/qualigraph-logo-mark.svg" alt="QualiGraph logo" style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #3a5388', background: '#0b1731' }} />
+        <h1 style={{ margin: 0, fontSize: 34 }}>QualiGraph</h1>
+      </div>
+      <p style={{ marginTop: 0, marginBottom: 6, color: '#d9e7ff', fontWeight: 800, maxWidth: 980, fontSize: 22 }}>
+        GenAI Quality Engine for Product Delivery
       </p>
-      <p style={{ marginTop: 0, marginBottom: 6, color: '#c4d5f4', fontWeight: 600, maxWidth: 980 }}>
-        The operating system for delivery quality
-      </p>
-      <p style={{ marginTop: 0, color: '#abc0ea', maxWidth: 980 }}>
-        Unify requirements, tests, executions, and defects into one intelligence graph, so teams can measure risk, prioritize action, and ship with confidence.
+      <p style={{ marginTop: 0, color: '#b8cff3', maxWidth: 980, fontWeight: 600, fontSize: 16 }}>
+        Browser-first. Privacy-first. Zero API cost with local AI.
       </p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <button onClick={onGenerate} disabled={isGeneratingSchema} style={btn('#2a6cff', isGeneratingSchema)}>{isGeneratingSchema ? `Generating... ${generateProgress}%` : 'Generate 10,000 Unified Schema Records'}</button>
-        <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload Test Data JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
-        <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Test Cases</button>
-        <button onClick={() => downloadJson(unified, 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Complete Schema Bundle</button>
-        <button onClick={() => downloadJson(getUnifiedSchemaDefinition(), 'qaip_unified_schema_definition.json')} style={btn('#3f6bd8')}>Download Unified Schema Definition</button>
-
-        <div style={{ display: 'inline-flex', border: '1px solid #3a5388', borderRadius: 10, overflow: 'hidden' }}>
-          <button onClick={() => setBuildMode('quick')} style={{ ...btn(buildMode === 'quick' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Quick (2k)</button>
-          <button onClick={() => setBuildMode('full')} style={{ ...btn(buildMode === 'full' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Full (10k)</button>
-        </div>
-
-        <button onClick={onBuildSemantic} disabled={isBuildingSemantic} style={btn('#11856b', isBuildingSemantic)}>
+        <button onClick={onGenerate} disabled={isGeneratingSchema} style={btn('#2a6cff', isGeneratingSchema)}>{isGeneratingSchema ? `Generating... ${generateProgress}%` : 'Generate Unified Schema Records'}</button>
+        <button onClick={onBuildSemantic} disabled={isBuildingSemantic} style={btn('#0f8a72', isBuildingSemantic)}>
           {isBuildingSemantic ? `Building... ${buildProgress}%` : 'Build Embeddings + Clusters'}
         </button>
-        <button onClick={onCancelSemanticBuild} disabled={!isBuildingSemantic} style={btn('#9a3240', !isBuildingSemantic)}>Cancel Build</button>
+        <button onClick={onCancelSemanticBuild} disabled={!isBuildingSemantic} style={btn('#a45c18', !isBuildingSemantic)}>Stop Embedding Build</button>
+
+        <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload Test Data JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
+        <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Test Cases</button>
+        <button onClick={() => downloadJson(unified, 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Unified Data</button>
+        <button onClick={() => downloadJson(getUnifiedSchemaDefinition(), 'qaip_unified_schema_definition.json')} style={btn('#3f6bd8')}>Download Unified Schema Definition</button>
       </div>
 
       <div style={{ color: '#95aedf', marginBottom: 4 }}>{status}</div>
@@ -1256,7 +1290,7 @@ function App() {
         <Panel title="Requirement Coverage Heatmap" onInfo={() => setPopup({ title: 'Requirement Coverage Heatmap', body: CHART_HELP['Requirement Coverage Heatmap'] })}>
           <ReactECharts option={coverageHeatmapOption} style={{ height: 320 }} />
         </Panel>
-        <Panel title="Defect Leakage Funnel" onInfo={() => setPopup({ title: 'Defect Leakage Funnel', body: CHART_HELP['Defect Leakage Funnel'] })}>
+        <Panel title="Defect Leakage Flow" onInfo={() => setPopup({ title: 'Defect Leakage Flow', body: CHART_HELP['Defect Leakage Funnel'] })}>
           <ReactECharts option={defectFunnelOption} style={{ height: 320 }} />
         </Panel>
       </section>
