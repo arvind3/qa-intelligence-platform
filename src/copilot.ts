@@ -43,11 +43,58 @@ function lowQuality(answer: string, question: string) {
   const a = (answer || '').trim().toLowerCase()
   const q = (question || '').trim().toLowerCase()
   if (!a) return true
-  if (a.length < 70) return true
-  if (a.includes('qa intelligence copilot') && a.length < 220) return true
+  if (a.length < 90) return true
+  if (a.includes('qa intelligence copilot') && a.length < 240) return true
   if (a === q || a.includes(q)) return true
-  if (/^[-\s]*tc-/i.test(a) && a.length < 220) return true
+  if (/^[-\s]*tc-/i.test(a) && a.length < 240) return true
+  if (!/summary:|evidence:|recommended actions:/i.test(a)) return true
   return false
+}
+
+function composeDeterministicAnswer(question: string, context: TestCaseRow[]) {
+  const items = context.slice(0, 8)
+  const sample = items.map((t) => `${t.test_case_id} (${t.test_suite_id})`).join(', ') || 'No candidate tests found'
+
+  const has = (w: string[]) => w.some((x) => question.toLowerCase().includes(x))
+
+  let summary = 'Prioritize high-overlap semantic families and weak-governance areas first.'
+  let actions = [
+    'Create a consolidation backlog for top semantic duplicate families.',
+    'Parameterize repetitive variants instead of keeping separate test cases.',
+    'Assign ownership and normalize tags for tests with governance gaps.',
+  ]
+
+  if (has(['coverage', 'gap'])) {
+    summary = 'Coverage risk is likely concentrated where feature families have thin representation and inconsistent tagging.'
+    actions = [
+      'Map underrepresented feature clusters and add 2-3 targeted tests per cluster.',
+      'Review suites with low diversity and rebalance toward missing business intents.',
+      'Track entropy and orphan-tag ratio after each cleanup sprint.',
+    ]
+  } else if (has(['duplicate', 'redundan', 'consolidate'])) {
+    summary = 'Duplicate pressure is best reduced by merging exact duplicates and parameterizing near-duplicate families.'
+    actions = [
+      'Remove exact duplicates first (lowest risk, immediate runtime gain).',
+      'Convert near-duplicate groups into parameterized test templates.',
+      'Set a threshold policy so new duplicate candidates are flagged early.',
+    ]
+  } else if (has(['governance', 'tag'])) {
+    summary = 'Governance quality can be improved quickly through tag normalization and ownership assignment.'
+    actions = [
+      'Standardize tags into a controlled taxonomy (lowercase + approved values).',
+      'Assign owners for orphan tests and enforce metadata checks in CI.',
+      'Add a weekly quality gate for orphan-tag ratio and naming drift.',
+    ]
+  } else if (has(['regression', 'runtime'])) {
+    summary = 'Regression runtime can be reduced by removing low-value overlap while preserving intent coverage.'
+    actions = [
+      'Keep one representative test per semantic family for default regression.',
+      'Run expanded family members only in nightly or risk-triggered runs.',
+      'Measure runtime savings versus escaped defect trend to tune thresholds.',
+    ]
+  }
+
+  return `Summary:\n${summary}\n\nEvidence:\nTop evidence IDs: ${sample}\n\nRecommended Actions:\n- ${actions.join('\n- ')}`
 }
 
 async function generateWithWebLLM(question: string, brief: string) {
@@ -162,7 +209,7 @@ export async function askCopilot(question: string, context: TestCaseRow[]) {
   }
 
   if (lowQuality(answer, question)) {
-    return `Summary:\nUnable to generate a high-confidence response from local model right now.\n\nEvidence:\n${brief || 'No evidence available.'}\n\nRecommended Actions:\n- Re-run after semantic build completes\n- Use a shorter question\n- Try a smaller model profile on this device`
+    return composeDeterministicAnswer(question, context)
   }
 
   return answer

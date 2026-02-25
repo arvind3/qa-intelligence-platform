@@ -1,78 +1,78 @@
 {
   "count": 10,
   "ok": 10,
-  "avgMs": 4256,
-  "avgQuality": 9,
+  "avgMs": 5180,
+  "avgQuality": 24,
   "results": [
     {
       "q": "Which duplicate families should we consolidate first?",
       "status": "ok",
-      "ms": 29072,
+      "ms": 27608,
       "quality": 30,
-      "preview": "tc-eX-0: Checkout: validation on api [tags=checkout,validation,api,regression] - TC-EX-0: Checkout: validation on api [tags=checkout,validation,api,regression] "
+      "preview": "The answer is: TC-EX-1: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Admin: edge case on api [tags admin, Regression, Regression] - T"
     },
     {
       "q": "What are the top 3 coverage gaps by business risk?",
       "status": "ok",
-      "ms": 1193,
-      "quality": 0,
-      "preview": "X-rays and rays are the top 3 coverage gaps by business risk."
+      "ms": 3128,
+      "quality": 30,
+      "preview": "The top 3 coverage gaps by business risk are: 1. The top 3 coverage gaps by business risk are: 1. The top 3 coverage gaps by business risk are: 1. The top 3 cov"
     },
     {
       "q": "Which suites are over-indexed with redundant tests?",
       "status": "ok",
-      "ms": 972,
-      "quality": 0,
-      "preview": "QA Intelligence"
+      "ms": 3107,
+      "quality": 30,
+      "preview": "The answer is: TC-EX-1: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Orders: edge case on api [tags admin, Regression, Regression] - "
     },
     {
       "q": "Show tests with weak or inconsistent tagging.",
       "status": "ok",
-      "ms": 905,
-      "quality": 0,
-      "preview": "tagging"
+      "ms": 3112,
+      "quality": 30,
+      "preview": "- TC-EX-0: Admin: edge case on api [tags=admin,Regression,regression] - TC-EX-1: Admin: edge case on api [tags=admin,Regression,regression] - TC-EX-1: Admin: ed"
     },
     {
       "q": "Which semantic clusters look too broad and need split?",
       "status": "ok",
-      "ms": 3104,
+      "ms": 3113,
       "quality": 30,
-      "preview": "tc-eX-1: Checkout: validation on web [tags=checkout,validation,api,regression] - TC-EX-1: Orders: recovery,validation,web,regression] - TC-EX-3: Inventory: edge"
+      "preview": "The answer is: - TC-EX-0: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Orders: edge case on api [tags admin, Regression, Regression] "
     },
     {
       "q": "What is the fastest way to reduce regression runtime by 20%?",
       "status": "ok",
-      "ms": 3089,
+      "ms": 3072,
       "quality": 30,
-      "preview": "TC-EX-0: Checkout: validation on api [tags=checkout,validation,api,regression] - TC-EX-0: Checkout: validation on api [tags=checkout,validation,api,regression] "
+      "preview": "The fastest way to reduce regression runtime by 20% is to use a TC-EX-0: Admin: edge case on api [tagsadmin,Regression,regression] - TC-EX-1: Admin: edge case o"
     },
     {
       "q": "Which tests are best candidates for parameterization?",
       "status": "ok",
-      "ms": 974,
-      "quality": 0,
-      "preview": "QA Intelligence Copilot"
+      "ms": 3072,
+      "quality": 30,
+      "preview": "The best candidates for parameterization are: - TC-EX-0: Admin: edge case on api [tags=admin,Regression,regression] - TC-EX-1: Orders: edge case on api [tags=ad"
     },
     {
       "q": "What should be the next governance cleanup backlog?",
       "status": "ok",
-      "ms": 990,
-      "quality": 0,
-      "preview": "QA Intelligence copilot"
+      "ms": 3043,
+      "quality": 30,
+      "preview": "The next governance cleanup backlog would be: - TC-EX-0: Admin: edge case on api [tags admin, Regression, Regression] - TC-EX-1: Admin: edge case on api [tags a"
     },
     {
       "q": "Explain why entropy score changed after this dataset load.",
       "status": "ok",
-      "ms": 1164,
+      "ms": 1321,
       "quality": 0,
-      "preview": "Detection: entropy score changed after this dataset load."
+      "preview": "The answer is: entropy score changed after this dataset load because the entropy score changed after this dataset load."
     },
     {
       "q": "If we remove top duplicate clusters, what coverage risk remains?",
       "status": "ok",
-      "ms": 1098,
+      "ms": 1222,
       "quality": 0,
-      "preview": "if we remove top duplicate clusters, what coverage risk remains?"
+      "preview": "The answer is: if we remove top duplicate clusters, the coverage risk remains."
     }
   ]
 }
