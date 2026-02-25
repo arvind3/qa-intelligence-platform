@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QualiGraph Awareness Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#06132a;--bg2:#0c2247;--card:#0e1f3e;--line:#2f4f86;--text:#e8f1ff;--muted:#a9c1ea;--accent:#68d7ff;--accent2:#8b7dff}
+    body{font-family:Manrope,sans-serif;background:radial-gradient(circle at 15% 0%,var(--bg2),var(--bg));color:var(--text)}
+    h1,h2{font-family:Fraunces,serif}
+  </style>
+</head>
+<body class="min-h-screen">
+  <main class="max-w-6xl mx-auto px-5 py-10">
+    <header class="mb-8">
+      <p class="text-sky-300 text-sm font-semibold tracking-wider uppercase">QualiGraph · Repo Awareness Pages</p>
+      <h1 class="text-5xl mt-2 mb-3">Choose your point of view</h1>
+      <p class="text-[var(--muted)] max-w-3xl">These pages explain the <strong>expanded-solution</strong> branch from four audience lenses: Engineering, Product, Capability, and Executive Strategy.</p>
+      <p class="text-xs text-[var(--muted)] mt-2">* Some business metrics are inferred from implementation and quality artifacts in this branch.</p>
+    </header>
+
+    <section class="grid md:grid-cols-2 gap-4">
+      <a href="engineering.html" class="block rounded-2xl border border-[var(--line)] bg-[var(--card)] p-6 hover:border-sky-300 transition">
+        <h2 class="text-2xl">Engineering Perspective</h2>
+        <p class="text-[var(--muted)] mt-2">Architecture, stack, design decisions, data flow, and quality gates.</p>
+      </a>
+      <a href="product.html" class="block rounded-2xl border border-[var(--line)] bg-[var(--card)] p-6 hover:border-sky-300 transition">
+        <h2 class="text-2xl">Product Perspective</h2>
+        <p class="text-[var(--muted)] mt-2">User value, journey, key features, and before-vs-after impact.</p>
+      </a>
+      <a href="capability.html" class="block rounded-2xl border border-[var(--line)] bg-[var(--card)] p-6 hover:border-sky-300 transition">
+        <h2 class="text-2xl">Capability Perspective</h2>
+        <p class="text-[var(--muted)] mt-2">Cross-domain use cases and platform-level capability map.</p>
+      </a>
+      <a href="executive.html" class="block rounded-2xl border border-[var(--line)] bg-[var(--card)] p-6 hover:border-sky-300 transition">
+        <h2 class="text-2xl">Executive Summary</h2>
+        <p class="text-[var(--muted)] mt-2">Opportunity, strategic value, traction signals, and next step.</p>
+      </a>
+    </section>
+
+    <footer class="mt-10 text-sm text-[var(--muted)] flex flex-wrap gap-4 items-center">
+      <a class="underline" href="https://github.com/arvind3/qa-intelligence-platform/tree/expanded-solution">View expanded-solution branch</a>
+      <span>·</span>
+      <span>Built for GitHub Pages awareness review</span>
+    </footer>
+  </main>
+</body>
+</html>
