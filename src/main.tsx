@@ -85,6 +85,54 @@ function downloadJson(rows: any, fileName = 'generated_testcases.json') {
   URL.revokeObjectURL(url)
 }
 
+function getUnifiedSchemaDefinition() {
+  return {
+    schema_name: 'qaip-unified-schema',
+    schema_version: 'v1',
+    description: 'Canonical product schema for requirements, tests, execution runs, defects, and traceability relationships.',
+    entities: {
+      requirements: {
+        primary_key: 'requirement_id',
+        fields: ['requirement_id', 'requirement_name', 'requirement_description', 'requirement_acceptance_criteria', 'tags', 'source_system', 'source_key', 'created_at', 'updated_at'],
+      },
+      test_cases: {
+        primary_key: 'test_id',
+        fields: ['test_id', 'test_plan_id', 'test_suite_id', 'test_case_name', 'test_case_description', 'test_steps', 'tags', 'source_system', 'source_key', 'created_at', 'updated_at'],
+      },
+      test_suites: {
+        primary_key: 'suite_id',
+        fields: ['suite_id', 'suite_name', 'test_plan_id', 'source_system', 'source_key', 'created_at', 'updated_at'],
+      },
+      test_plans: {
+        primary_key: 'plan_id',
+        fields: ['plan_id', 'plan_name', 'source_system', 'source_key', 'created_at', 'updated_at'],
+      },
+      executions: {
+        primary_key: 'run_id',
+        fields: ['run_id', 'test_id', 'test_plan_id', 'test_suite_id', 'environment', 'executed_at', 'execution_status', 'duration_ms'],
+      },
+      defects: {
+        primary_key: 'defect_id',
+        fields: ['defect_id', 'title', 'severity', 'status', 'linked_test_id', 'linked_requirement_id', 'source_system', 'source_key', 'created_at'],
+      },
+      requirement_test_links: {
+        primary_key: 'composite(requirement_id,test_id)',
+        fields: ['requirement_id', 'test_id', 'link_type', 'confidence'],
+      },
+    },
+    relationships: [
+      { from: 'test_plans.plan_id', to: 'test_suites.test_plan_id', cardinality: '1:N' },
+      { from: 'test_suites.suite_id', to: 'test_cases.test_suite_id', cardinality: '1:N' },
+      { from: 'test_plans.plan_id', to: 'test_cases.test_plan_id', cardinality: '1:N' },
+      { from: 'requirements.requirement_id', to: 'requirement_test_links.requirement_id', cardinality: '1:N' },
+      { from: 'test_cases.test_id', to: 'requirement_test_links.test_id', cardinality: '1:N' },
+      { from: 'test_cases.test_id', to: 'executions.test_id', cardinality: '1:N' },
+      { from: 'test_cases.test_id', to: 'defects.linked_test_id', cardinality: '1:N' },
+      { from: 'requirements.requirement_id', to: 'defects.linked_requirement_id', cardinality: '1:N' },
+    ],
+  }
+}
+
 function buildUnifiedSchema(rows: TestCaseRow[]) {
   const now = new Date().toISOString()
 
@@ -330,6 +378,16 @@ function App() {
   const kpis = useMemo(() => computeKpis(rows), [rows])
   const unified = useMemo(() => buildUnifiedSchema(rows), [rows])
   const runtimeMode = getReasoningMode()
+
+  const unifiedSamplePreview = useMemo(() => ({
+    requirements: (unified.requirements || []).slice(0, 2),
+    test_cases: (unified.test_cases || []).slice(0, 2),
+    test_suites: (unified.test_suites || []).slice(0, 1),
+    test_plans: (unified.test_plans || []).slice(0, 1),
+    requirement_test_links: (unified.requirement_test_links || []).slice(0, 3),
+    executions: (unified.executions || []).slice(0, 2),
+    defects: (unified.defects || []).slice(0, 2),
+  }), [unified])
 
   const kpiItems = [
     { label: 'Total Tests', value: kpis.totalTests.toLocaleString(), type: 'deterministic' as const },
@@ -997,6 +1055,7 @@ function App() {
         <label style={{ ...btn('#1a315e'), border: '1px solid #3a5388' }}>Upload Test Data JSON/CSV<input type="file" accept="application/json,text/csv,.csv" onChange={onUpload} style={{ display: 'none' }} /></label>
         <button onClick={() => downloadJson(rows)} disabled={!rows.length} style={btn('#245f4a', !rows.length)}>Export Test Cases</button>
         <button onClick={() => downloadJson(unified, 'qaip_unified_schema_bundle.json')} disabled={!rows.length} style={btn('#5f3ca4', !rows.length)}>Download Complete Schema Bundle</button>
+        <button onClick={() => downloadJson(getUnifiedSchemaDefinition(), 'qaip_unified_schema_definition.json')} style={btn('#3f6bd8')}>Download Unified Schema Definition</button>
 
         <div style={{ display: 'inline-flex', border: '1px solid #3a5388', borderRadius: 10, overflow: 'hidden' }}>
           <button onClick={() => setBuildMode('quick')} style={{ ...btn(buildMode === 'quick' ? '#1f6b56' : '#1b2f5a'), borderRadius: 0 }}>Quick (2k)</button>
@@ -1228,6 +1287,15 @@ function App() {
             </tbody>
           </table>
         </div>
+      </Panel>
+
+      <Panel title="Sample Unified Data JSON (Relationship Snapshot)" style={{ marginTop: 16 }}>
+        <div style={{ fontSize: 12, color: '#9fb2df', marginBottom: 8 }}>
+          Sample only (few records) to demonstrate entity structure and relationship linking.
+        </div>
+        <pre style={{ marginTop: 0, background: '#0b1220', border: '1px solid #324978', borderRadius: 8, padding: 10, whiteSpace: 'pre-wrap', color: '#c9d7f8', maxHeight: 300, overflow: 'auto' }}>
+          {JSON.stringify(unifiedSamplePreview, null, 2)}
+        </pre>
       </Panel>
 
       <Panel title="QA Copilot" style={{ marginTop: 16 }}>
