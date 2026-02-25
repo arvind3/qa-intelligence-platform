@@ -49,8 +49,14 @@ jobs:
           rm -rf site
           mkdir -p site
           cp -R ../wt-master/dist/. site/
+
+          # Expanded solution app
           mkdir -p site/expanded-solution
           cp -R ../wt-expanded/dist/. site/expanded-solution/
+
+          # Expanded solution awareness pages (static docs/*.html)
+          mkdir -p site/expanded-solution/docs
+          cp -R ../wt-expanded/docs/. site/expanded-solution/docs/
 
       - uses: actions/upload-pages-artifact@v3
         with:
