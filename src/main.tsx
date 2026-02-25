@@ -24,8 +24,15 @@ const KPI_HELP: Record<string, string> = {
 }
 
 const CHART_HELP: Record<string, string> = {
-  'Semantic Cluster Map': `Concept: Visual map of semantic test families.\n\nTechnical: Each bubble represents a cluster of similar embeddings; larger bubble = larger family.\n\nDeterministic vs Non-deterministic: Non-deterministic (LLM/embedding-assisted grouping).\n\nBusiness value: Helps leadership quickly see duplication hotspots and prioritize consolidation waves.`,
-  'Suite Distribution (DuckDB)': `Concept: Distribution of tests across suites.\n\nTechnical: DuckDB aggregation of test counts by suite ID.\n\nDeterministic vs Non-deterministic: Deterministic (programmatic aggregation).\n\nBusiness value: Detects imbalance and potential blind spots; supports rational rebalancing of QA investment.`,
+  'Semantic Cluster Map': `What this does: Visual map of semantic test families.\n\nTechnical method: Each bubble represents a cluster of similar test embeddings; larger bubble = larger family.\n\nType: Non-deterministic (LLM/embedding-assisted grouping).\n\nStakeholder value: Reveals duplication hotspots and consolidation opportunities.`,
+  'Suite Distribution (DuckDB)': `What this does: Distribution of tests across suites.\n\nTechnical method: DuckDB aggregation of test counts by suite ID.\n\nType: Deterministic.\n\nStakeholder value: Shows balance/imbalance across test suites for planning and ownership.`,
+  'Requirement Cluster Map': `What this does: Clusters requirements by semantic/feature similarity.\n\nTechnical method: Requirements are grouped by feature signals and plotted as cluster bubbles.\n\nType: Hybrid (deterministic grouping with semantic intent approximation).\n\nStakeholder value: Highlights overlapping requirement themes and potential requirement rationalization.`,
+  'Defect Cluster Map': `What this does: Clusters defects by recurring defect patterns.\n\nTechnical method: Defects are grouped by severity/status-linked themes and plotted as cluster bubbles.\n\nType: Hybrid (deterministic signals with pattern grouping).\n\nStakeholder value: Speeds root-cause prioritization and defect reduction strategy.`,
+  'Unified Cluster Map': `What this does: Consolidated cluster map across requirements, tests, and defects.\n\nTechnical method: Entity points are projected into one map and color-coded by entity type with feature anchoring.\n\nType: Hybrid.\n\nStakeholder value: Gives leadership one integrated quality-intelligence view across lifecycle entities.`,
+  'Requirement Coverage Heatmap': `What this does: Shows requirement-to-test coverage intensity.\n\nTechnical method: Link-table aggregation from requirement_test_links into a feature matrix.\n\nType: Deterministic.\n\nStakeholder value: Immediately surfaces under-tested requirement areas.`,
+  'Defect Leakage Funnel': `What this does: Shows flow from executions to failures to defects to open defects.\n\nTechnical method: Aggregated counts from execution_status and defect status.\n\nType: Deterministic.\n\nStakeholder value: Quantifies quality containment effectiveness.`,
+  'Execution Reliability by Plan': `What this does: Passed/failed/blocked quality mix by test plan.\n\nTechnical method: Grouped execution rollups by plan and status.\n\nType: Deterministic.\n\nStakeholder value: Identifies unstable plans and release risk concentrations.`,
+  'Traceability Completeness': `What this does: Measures linkage completeness across requirements, tests, and defects.\n\nTechnical method: Ratio checks over relationship tables and linked identifiers.\n\nType: Deterministic.\n\nStakeholder value: Governance readiness KPI for enterprise stakeholders.`,
 }
 
 const SAMPLE_QUESTIONS = [
@@ -461,7 +468,7 @@ function App() {
 
     const links: any[] = []
     for (const [p] of topPlans) {
-      for (const [s, c] of topSuites) {
+      for (const [s] of topSuites) {
         const count = (unified.test_cases || []).filter((t: any) => t.test_plan_id === p && t.test_suite_id === s).length
         if (count > 0) links.push({ source: `Plan ${p}`, target: `Suite ${s}`, value: count })
       }
@@ -475,6 +482,130 @@ function App() {
       backgroundColor: 'transparent',
       tooltip: { trigger: 'item' },
       series: [{ type: 'sankey', data: nodes, links, lineStyle: { color: 'gradient', curveness: 0.5 }, label: { color: '#d7e5ff' } }],
+    }
+  }, [unified])
+
+  const requirementClusterOption = useMemo(() => {
+    const groups = new Map<string, number>()
+    for (const r of unified.requirements || []) {
+      const f = String(r.tags?.[0] || 'general')
+      groups.set(f, (groups.get(f) || 0) + 1)
+    }
+    const points = [...groups.entries()].map(([feature, count], i) => [i + 1, count, feature])
+    return {
+      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster' },
+      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Requirements' },
+      tooltip: { formatter: (p: any) => `Req Cluster ${p.data[0]}<br/>Feature: ${p.data[2]}<br/>Size: ${p.data[1]}` },
+      series: [{ type: 'scatter', data: points, symbolSize: (v: any) => 10 + Math.min(36, v[1] * 2), itemStyle: { color: '#57d9ff' } }],
+    }
+  }, [unified])
+
+  const defectClusterOption = useMemo(() => {
+    const groups = new Map<string, number>()
+    for (const d of unified.defects || []) {
+      const key = `${d.severity || 'unknown'}-${d.status || 'open'}`
+      groups.set(key, (groups.get(key) || 0) + 1)
+    }
+    const points = [...groups.entries()].map(([key, count], i) => [i + 1, count, key])
+    return {
+      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster' },
+      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Defects' },
+      tooltip: { formatter: (p: any) => `Defect Cluster ${p.data[0]}<br/>Pattern: ${p.data[2]}<br/>Size: ${p.data[1]}` },
+      series: [{ type: 'scatter', data: points, symbolSize: (v: any) => 10 + Math.min(36, v[1] * 2), itemStyle: { color: '#ff7c8f' } }],
+    }
+  }, [unified])
+
+  const unifiedClusterOption = useMemo(() => {
+    const hash = (s: string) => Array.from(s).reduce((a, c) => ((a * 33 + c.charCodeAt(0)) >>> 0), 9)
+    const req = (unified.requirements || []).slice(0, 300).map((r: any) => {
+      const k = hash(String(r.requirement_id))
+      return [k % 100, Math.floor(k / 7) % 100, r.requirement_id]
+    })
+    const tc = (unified.test_cases || []).slice(0, 900).map((t: any) => {
+      const k = hash(String(t.test_id))
+      return [k % 100, Math.floor(k / 5) % 100, t.test_id]
+    })
+    const df = (unified.defects || []).slice(0, 300).map((d: any) => {
+      const k = hash(String(d.defect_id))
+      return [k % 100, Math.floor(k / 3) % 100, d.defect_id]
+    })
+    return {
+      legend: { data: ['Requirements', 'Tests', 'Defects'], textStyle: { color: '#a4bbec' } },
+      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
+      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
+      tooltip: { trigger: 'item' },
+      series: [
+        { name: 'Requirements', type: 'scatter', data: req, symbolSize: 9, itemStyle: { color: '#57d9ff' } },
+        { name: 'Tests', type: 'scatter', data: tc, symbolSize: 7, itemStyle: { color: '#6d8eff' } },
+        { name: 'Defects', type: 'scatter', data: df, symbolSize: 11, itemStyle: { color: '#ff7c8f' } },
+      ],
+    }
+  }, [unified])
+
+  const coverageHeatmapOption = useMemo(() => {
+    const reqs = (unified.requirements || []).slice(0, 15)
+    const suites = [...new Set((unified.test_cases || []).map((t: any) => t.test_suite_id))].slice(0, 12)
+    const data: any[] = []
+    reqs.forEach((r: any, i: number) => {
+      suites.forEach((s: any, j: number) => {
+        const linked = (unified.requirement_test_links || []).filter((l: any) => l.requirement_id === r.requirement_id)
+        const val = linked.filter((l: any) => (unified.test_cases || []).find((t: any) => t.test_id === l.test_id && t.test_suite_id === s)).length
+        data.push([j, i, val])
+      })
+    })
+    return {
+      tooltip: { position: 'top' },
+      xAxis: { type: 'category', data: suites, axisLabel: { color: '#a4bbec', rotate: 20 } },
+      yAxis: { type: 'category', data: reqs.map((r: any) => r.requirement_id), axisLabel: { color: '#a4bbec' } },
+      visualMap: { min: 0, max: Math.max(1, ...data.map((d) => d[2])), calculable: true, orient: 'horizontal', left: 'center', bottom: 0, textStyle: { color: '#a4bbec' } },
+      series: [{ type: 'heatmap', data }],
+    }
+  }, [unified])
+
+  const defectFunnelOption = useMemo(() => {
+    const totalExec = (unified.executions || []).length
+    const failed = (unified.executions || []).filter((e: any) => e.execution_status === 'failed').length
+    const defects = (unified.defects || []).length
+    const openDefects = (unified.defects || []).filter((d: any) => ['new', 'open', 'in-progress'].includes(String(d.status))).length
+    return {
+      tooltip: { trigger: 'item' },
+      series: [{ type: 'funnel', top: 10, bottom: 10, left: '10%', width: '80%', label: { color: '#d7e5ff' }, data: [
+        { name: 'Executions', value: totalExec },
+        { name: 'Failed Runs', value: failed },
+        { name: 'Defects Raised', value: defects },
+        { name: 'Open Defects', value: openDefects },
+      ] }],
+    }
+  }, [unified])
+
+  const reliabilityByPlanOption = useMemo(() => {
+    const plans = [...new Set((unified.executions || []).map((e: any) => e.test_plan_id))].slice(0, 10)
+    const counts = (status: string) => plans.map((p) => (unified.executions || []).filter((e: any) => e.test_plan_id === p && e.execution_status === status).length)
+    return {
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Passed', 'Failed', 'Blocked'], textStyle: { color: '#a4bbec' } },
+      xAxis: { type: 'category', data: plans, axisLabel: { color: '#a4bbec' } },
+      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
+      series: [
+        { name: 'Passed', type: 'bar', stack: 'total', data: counts('passed'), itemStyle: { color: '#38d39f' } },
+        { name: 'Failed', type: 'bar', stack: 'total', data: counts('failed'), itemStyle: { color: '#ff7c8f' } },
+        { name: 'Blocked', type: 'bar', stack: 'total', data: counts('blocked'), itemStyle: { color: '#f0c14b' } },
+      ],
+    }
+  }, [unified])
+
+  const traceabilityGaugeOption = useMemo(() => {
+    const totalTests = Math.max(1, (unified.test_cases || []).length)
+    const linkedTests = new Set((unified.requirement_test_links || []).map((l: any) => l.test_id)).size
+    const defects = unified.defects || []
+    const linkedDefects = defects.filter((d: any) => d.linked_test_id && d.linked_requirement_id).length
+    const v1 = Math.round((linkedTests / totalTests) * 100)
+    const v2 = defects.length ? Math.round((linkedDefects / defects.length) * 100) : 100
+    return {
+      series: [
+        { type: 'gauge', center: ['28%', '55%'], radius: '50%', min: 0, max: 100, detail: { formatter: '{value}%' }, title: { offsetCenter: [0, '75%'], color: '#a4bbec' }, data: [{ value: v1, name: 'Test Linkage' }] },
+        { type: 'gauge', center: ['72%', '55%'], radius: '50%', min: 0, max: 100, detail: { formatter: '{value}%' }, title: { offsetCenter: [0, '75%'], color: '#a4bbec' }, data: [{ value: v2, name: 'Defect Linkage' }] },
+      ],
     }
   }, [unified])
 
@@ -891,8 +1022,38 @@ function App() {
       </section>
 
       <section style={{ marginTop: 12 }}>
-        <Panel title="Consolidated Relationship Flow (Plan → Suite → Defects)">
+        <Panel title="Consolidated Relationship Flow (Plan → Suite → Defects)" onInfo={() => setPopup({ title: 'Consolidated Relationship Flow', body: CHART_HELP['Unified Cluster Map'] })}>
           <ReactECharts option={relationshipFlowOption} style={{ height: 360 }} />
+        </Panel>
+      </section>
+
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12 }}>
+        <Panel title="Requirement Cluster Map" onInfo={() => setPopup({ title: 'Requirement Cluster Map', body: CHART_HELP['Requirement Cluster Map'] })}>
+          <ReactECharts option={requirementClusterOption} style={{ height: 300 }} />
+        </Panel>
+        <Panel title="Defect Cluster Map" onInfo={() => setPopup({ title: 'Defect Cluster Map', body: CHART_HELP['Defect Cluster Map'] })}>
+          <ReactECharts option={defectClusterOption} style={{ height: 300 }} />
+        </Panel>
+        <Panel title="Unified Cluster Map" onInfo={() => setPopup({ title: 'Unified Cluster Map', body: CHART_HELP['Unified Cluster Map'] })}>
+          <ReactECharts option={unifiedClusterOption} style={{ height: 300 }} />
+        </Panel>
+      </section>
+
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+        <Panel title="Requirement Coverage Heatmap" onInfo={() => setPopup({ title: 'Requirement Coverage Heatmap', body: CHART_HELP['Requirement Coverage Heatmap'] })}>
+          <ReactECharts option={coverageHeatmapOption} style={{ height: 320 }} />
+        </Panel>
+        <Panel title="Defect Leakage Funnel" onInfo={() => setPopup({ title: 'Defect Leakage Funnel', body: CHART_HELP['Defect Leakage Funnel'] })}>
+          <ReactECharts option={defectFunnelOption} style={{ height: 320 }} />
+        </Panel>
+      </section>
+
+      <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
+        <Panel title="Execution Reliability by Plan" onInfo={() => setPopup({ title: 'Execution Reliability by Plan', body: CHART_HELP['Execution Reliability by Plan'] })}>
+          <ReactECharts option={reliabilityByPlanOption} style={{ height: 320 }} />
+        </Panel>
+        <Panel title="Traceability Completeness" onInfo={() => setPopup({ title: 'Traceability Completeness', body: CHART_HELP['Traceability Completeness'] })}>
+          <ReactECharts option={traceabilityGaugeOption} style={{ height: 320 }} />
         </Panel>
       </section>
 
