@@ -6,7 +6,7 @@
     "expected_result": "Generating progress UI is visible and dataset loads",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 12000,
-    "actual_duration_ms": 12869,
+    "actual_duration_ms": 9039,
     "status": "PASS"
   },
   {
@@ -16,7 +16,7 @@
     "expected_result": "Chart panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -26,7 +26,7 @@
     "expected_result": "Chart panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -36,7 +36,7 @@
     "expected_result": "Chart panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -46,7 +46,7 @@
     "expected_result": "Chart panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -56,7 +56,7 @@
     "expected_result": "Sankey panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -66,7 +66,7 @@
     "expected_result": "Requirement cluster panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -76,7 +76,7 @@
     "expected_result": "Defect cluster panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -86,7 +86,7 @@
     "expected_result": "Unified cluster panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -96,7 +96,7 @@
     "expected_result": "Heatmap panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -106,7 +106,7 @@
     "expected_result": "Funnel panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -116,7 +116,7 @@
     "expected_result": "Reliability panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   },
   {
@@ -126,7 +126,7 @@
     "expected_result": "Gauge panel is visible and rendered",
     "actual_result": "Observed expected UI behavior in Playwright run",
     "expected_duration_ms": 8000,
-    "actual_duration_ms": 10034,
+    "actual_duration_ms": 9067,
     "status": "PASS"
   }
 ]

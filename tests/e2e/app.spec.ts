@@ -37,3 +37,23 @@ test('all chart and cluster panels render after generation', async ({ page }) =>
     await expect(page.getByRole('heading', { name: title })).toBeVisible({ timeout: 30000 })
   }
 })
+
+test('requirement/defect/unified cluster maps support search, top/all, and details popup', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: /Generate 10,000 Unified Schema Records/i }).click()
+  await expect(page.getByText(/Loaded 10,000 tests from synthetic unified schema generator/i)).toBeVisible({ timeout: 30000 })
+
+  await page.getByPlaceholder('Search req cluster...').fill('auth')
+  await page.getByRole('button', { name: 'Open first' }).nth(0).click()
+  await expect(page.getByRole('heading', { name: /requirement Cluster #/i })).toBeVisible({ timeout: 10000 })
+  await page.getByRole('button', { name: 'Close' }).first().click()
+
+  await page.getByPlaceholder('Search defect cluster...').fill('high')
+  await page.getByRole('button', { name: 'Open first' }).nth(1).click()
+  await expect(page.getByRole('heading', { name: /defect Cluster #/i })).toBeVisible({ timeout: 10000 })
+  await page.getByRole('button', { name: 'Close' }).first().click()
+
+  await page.getByPlaceholder('Search unified cluster...').fill('auth')
+  await page.getByRole('button', { name: 'Open first' }).nth(2).click()
+  await expect(page.getByRole('heading', { name: /unified Cluster #/i })).toBeVisible({ timeout: 10000 })
+})

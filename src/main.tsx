@@ -294,6 +294,13 @@ function App() {
   const [clusterSearch, setClusterSearch] = useState('')
   const [clusterSortBy, setClusterSortBy] = useState<'id' | 'size' | 'family' | 'risk'>('size')
   const [clusterSortDir, setClusterSortDir] = useState<'asc' | 'desc'>('desc')
+  const [reqShowAll, setReqShowAll] = useState(false)
+  const [reqSearch, setReqSearch] = useState('')
+  const [defectShowAll, setDefectShowAll] = useState(false)
+  const [defectSearch, setDefectSearch] = useState('')
+  const [unifiedShowAll, setUnifiedShowAll] = useState(false)
+  const [unifiedSearch, setUnifiedSearch] = useState('')
+  const [entityClusterPopup, setEntityClusterPopup] = useState<{ kind: 'requirement' | 'defect' | 'unified'; item: any } | null>(null)
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 900 : false)
   const cancelBuildRef = useRef(false)
 
@@ -410,6 +417,55 @@ function App() {
       .slice(0, 12)
   }, [unified])
 
+  const requirementClusterSummaries = useMemo(() => {
+    const grouped = new Map<string, any[]>()
+    for (const r of unified.requirements || []) {
+      const feature = String(r.tags?.[0] || 'general')
+      if (!grouped.has(feature)) grouped.set(feature, [])
+      grouped.get(feature)!.push(r)
+    }
+    return [...grouped.entries()].map(([feature, recs], i) => ({ id: i + 1, feature, size: recs.length, rows: recs }))
+  }, [unified])
+
+  const defectClusterSummaries = useMemo(() => {
+    const grouped = new Map<string, any[]>()
+    for (const d of unified.defects || []) {
+      const key = `${String(d.severity || 'unknown')}/${String(d.status || 'open')}`
+      if (!grouped.has(key)) grouped.set(key, [])
+      grouped.get(key)!.push(d)
+    }
+    return [...grouped.entries()].map(([pattern, recs], i) => ({ id: i + 1, pattern, size: recs.length, rows: recs }))
+  }, [unified])
+
+  const unifiedClusterSummaries = useMemo(() => {
+    return featureStats.map((f, i) => ({
+      id: i + 1,
+      feature: f.feature,
+      requirements: f.requirements,
+      tests: f.tests,
+      defects: f.defects,
+      size: f.requirements + f.tests + f.defects,
+    }))
+  }, [featureStats])
+
+  const reqVisible = useMemo(() => {
+    const q = reqSearch.trim().toLowerCase()
+    const base = requirementClusterSummaries.filter((x) => !q || x.feature.toLowerCase().includes(q) || String(x.id).includes(q))
+    return reqShowAll ? base : base.slice(0, 10)
+  }, [requirementClusterSummaries, reqSearch, reqShowAll])
+
+  const defectVisible = useMemo(() => {
+    const q = defectSearch.trim().toLowerCase()
+    const base = defectClusterSummaries.filter((x) => !q || x.pattern.toLowerCase().includes(q) || String(x.id).includes(q))
+    return defectShowAll ? base : base.slice(0, 10)
+  }, [defectClusterSummaries, defectSearch, defectShowAll])
+
+  const unifiedVisible = useMemo(() => {
+    const q = unifiedSearch.trim().toLowerCase()
+    const base = unifiedClusterSummaries.filter((x) => !q || x.feature.toLowerCase().includes(q) || String(x.id).includes(q))
+    return unifiedShowAll ? base : base.slice(0, 10)
+  }, [unifiedClusterSummaries, unifiedSearch, unifiedShowAll])
+
   const executionStatusOption = useMemo(() => {
     const counts = { passed: 0, failed: 0, blocked: 0 } as Record<string, number>
     for (const e of unified.executions || []) counts[String(e.execution_status || 'blocked')] = (counts[String(e.execution_status || 'blocked')] || 0) + 1
@@ -488,61 +544,34 @@ function App() {
   }, [unified])
 
   const requirementClusterOption = useMemo(() => {
-    const groups = new Map<string, number>()
-    for (const r of unified.requirements || []) {
-      const f = String(r.tags?.[0] || 'general')
-      groups.set(f, (groups.get(f) || 0) + 1)
-    }
-    const points = [...groups.entries()].map(([feature, count], i) => [i + 1, count, feature])
+    const points = reqVisible.map((x, i) => [x.id, x.size, x.feature, i])
     return {
       xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster' },
       yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Requirements' },
       tooltip: { formatter: (p: any) => `Req Cluster ${p.data[0]}<br/>Feature: ${p.data[2]}<br/>Size: ${p.data[1]}` },
       series: [{ type: 'scatter', data: points, symbolSize: (v: any) => 10 + Math.min(36, v[1] * 2), itemStyle: { color: '#57d9ff' } }],
     }
-  }, [unified])
+  }, [reqVisible])
 
   const defectClusterOption = useMemo(() => {
-    const groups = new Map<string, number>()
-    for (const d of unified.defects || []) {
-      const key = `${d.severity || 'unknown'}-${d.status || 'open'}`
-      groups.set(key, (groups.get(key) || 0) + 1)
-    }
-    const points = [...groups.entries()].map(([key, count], i) => [i + 1, count, key])
+    const points = defectVisible.map((x, i) => [x.id, x.size, x.pattern, i])
     return {
       xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster' },
       yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Defects' },
       tooltip: { formatter: (p: any) => `Defect Cluster ${p.data[0]}<br/>Pattern: ${p.data[2]}<br/>Size: ${p.data[1]}` },
       series: [{ type: 'scatter', data: points, symbolSize: (v: any) => 10 + Math.min(36, v[1] * 2), itemStyle: { color: '#ff7c8f' } }],
     }
-  }, [unified])
+  }, [defectVisible])
 
   const unifiedClusterOption = useMemo(() => {
-    const hash = (s: string) => Array.from(s).reduce((a, c) => ((a * 33 + c.charCodeAt(0)) >>> 0), 9)
-    const req = (unified.requirements || []).slice(0, 300).map((r: any) => {
-      const k = hash(String(r.requirement_id))
-      return [k % 100, Math.floor(k / 7) % 100, r.requirement_id]
-    })
-    const tc = (unified.test_cases || []).slice(0, 900).map((t: any) => {
-      const k = hash(String(t.test_id))
-      return [k % 100, Math.floor(k / 5) % 100, t.test_id]
-    })
-    const df = (unified.defects || []).slice(0, 300).map((d: any) => {
-      const k = hash(String(d.defect_id))
-      return [k % 100, Math.floor(k / 3) % 100, d.defect_id]
-    })
+    const points = unifiedVisible.map((x, i) => [x.id, x.size, x.feature, i])
     return {
-      legend: { data: ['Requirements', 'Tests', 'Defects'], textStyle: { color: '#a4bbec' } },
-      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
-      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' } },
-      tooltip: { trigger: 'item' },
-      series: [
-        { name: 'Requirements', type: 'scatter', data: req, symbolSize: 9, itemStyle: { color: '#57d9ff' } },
-        { name: 'Tests', type: 'scatter', data: tc, symbolSize: 7, itemStyle: { color: '#6d8eff' } },
-        { name: 'Defects', type: 'scatter', data: df, symbolSize: 11, itemStyle: { color: '#ff7c8f' } },
-      ],
+      xAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Cluster' },
+      yAxis: { type: 'value', axisLabel: { color: '#a4bbec' }, name: 'Combined Size' },
+      tooltip: { formatter: (p: any) => `Unified Cluster ${p.data[0]}<br/>Feature: ${p.data[2]}<br/>Total: ${p.data[1]}` },
+      series: [{ type: 'scatter', data: points, symbolSize: (v: any) => 10 + Math.min(40, v[1] * 0.25), itemStyle: { color: '#8c7cff' } }],
     }
-  }, [unified])
+  }, [unifiedVisible])
 
   const coverageHeatmapOption = useMemo(() => {
     const reqs = (unified.requirements || []).slice(0, 15)
@@ -635,6 +664,27 @@ function App() {
     },
   }
 
+  const requirementClusterEvents = {
+    click: (params: any) => {
+      const idx = Number(params?.data?.[3])
+      if (!Number.isNaN(idx) && reqVisible[idx]) setEntityClusterPopup({ kind: 'requirement', item: reqVisible[idx] })
+    },
+  }
+
+  const defectClusterEvents = {
+    click: (params: any) => {
+      const idx = Number(params?.data?.[3])
+      if (!Number.isNaN(idx) && defectVisible[idx]) setEntityClusterPopup({ kind: 'defect', item: defectVisible[idx] })
+    },
+  }
+
+  const unifiedClusterEvents = {
+    click: (params: any) => {
+      const idx = Number(params?.data?.[3])
+      if (!Number.isNaN(idx) && unifiedVisible[idx]) setEntityClusterPopup({ kind: 'unified', item: unifiedVisible[idx] })
+    },
+  }
+
   const loadRows = async (data: TestCaseRow[], source: string) => {
     setRows(data)
     setSemanticReady(false)
@@ -642,6 +692,7 @@ function App() {
     setSemanticVectors([])
     setSelectedClusterIndex(null)
     setClusterPopupOpen(false)
+    setEntityClusterPopup(null)
     setStatus(`Loaded ${data.length.toLocaleString()} tests from ${source}`)
     await loadTestsToDuckDB(data)
     setSuiteDist((await queryDashboardStats()).suiteDist)
@@ -686,6 +737,7 @@ function App() {
     setSemanticReady(false)
     setSelectedClusterIndex(null)
     setClusterPopupOpen(false)
+    setEntityClusterPopup(null)
     cancelBuildRef.current = false
     setBuildProgress(0)
 
@@ -1056,13 +1108,34 @@ function App() {
 
       <section style={{ marginTop: 12, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12 }}>
         <Panel title="Requirement Cluster Map" onInfo={() => setPopup({ title: 'Requirement Cluster Map', body: CHART_HELP['Requirement Cluster Map'] })}>
-          <ReactECharts option={requirementClusterOption} style={{ height: 300 }} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setReqShowAll(false)} style={btn(!reqShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setReqShowAll(true)} style={btn(reqShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} placeholder="Search req cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
+            <button onClick={() => reqVisible[0] && setEntityClusterPopup({ kind: 'requirement', item: reqVisible[0] })} style={btn('#2a6cff', !reqVisible.length)} disabled={!reqVisible.length}>Open first</button>
+          </div>
+          <ReactECharts option={requirementClusterOption} onEvents={requirementClusterEvents} style={{ height: 300 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {reqVisible.length}/{requirementClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
         </Panel>
         <Panel title="Defect Cluster Map" onInfo={() => setPopup({ title: 'Defect Cluster Map', body: CHART_HELP['Defect Cluster Map'] })}>
-          <ReactECharts option={defectClusterOption} style={{ height: 300 }} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setDefectShowAll(false)} style={btn(!defectShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setDefectShowAll(true)} style={btn(defectShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input value={defectSearch} onChange={(e) => setDefectSearch(e.target.value)} placeholder="Search defect cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
+            <button onClick={() => defectVisible[0] && setEntityClusterPopup({ kind: 'defect', item: defectVisible[0] })} style={btn('#2a6cff', !defectVisible.length)} disabled={!defectVisible.length}>Open first</button>
+          </div>
+          <ReactECharts option={defectClusterOption} onEvents={defectClusterEvents} style={{ height: 300 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {defectVisible.length}/{defectClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
         </Panel>
         <Panel title="Unified Cluster Map" onInfo={() => setPopup({ title: 'Unified Cluster Map', body: CHART_HELP['Unified Cluster Map'] })}>
-          <ReactECharts option={unifiedClusterOption} style={{ height: 300 }} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+            <button onClick={() => setUnifiedShowAll(false)} style={btn(!unifiedShowAll ? '#1f6b56' : '#1b2f5a')}>Top clusters view</button>
+            <button onClick={() => setUnifiedShowAll(true)} style={btn(unifiedShowAll ? '#1f6b56' : '#1b2f5a')}>Show all clusters</button>
+            <input value={unifiedSearch} onChange={(e) => setUnifiedSearch(e.target.value)} placeholder="Search unified cluster..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #324978', background: '#0b1220', color: '#e8f0ff', minWidth: 160 }} />
+            <button onClick={() => unifiedVisible[0] && setEntityClusterPopup({ kind: 'unified', item: unifiedVisible[0] })} style={btn('#2a6cff', !unifiedVisible.length)} disabled={!unifiedVisible.length}>Open first</button>
+          </div>
+          <ReactECharts option={unifiedClusterOption} onEvents={unifiedClusterEvents} style={{ height: 300 }} />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#9fb2df' }}>Showing {unifiedVisible.length}/{unifiedClusterSummaries.length} clusters. Click a bubble for detailed cluster view.</div>
         </Panel>
       </section>
 
@@ -1223,6 +1296,53 @@ function App() {
                   {selectedClusterRows.map((r) => (
                     <tr key={r.test_case_id}><td style={td}>{r.test_case_id}</td><td style={td}>{r.title}</td><td style={td}>{r.test_suite_id}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {entityClusterPopup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,8,20,0.78)', display: 'grid', placeItems: 'center', zIndex: 44 }}>
+          <div style={{ width: 'min(920px, 96vw)', maxHeight: '88vh', overflow: 'auto', background: '#101a30', border: '1px solid #314a79', borderRadius: 14, padding: 16, boxShadow: '0 20px 70px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, textTransform: 'capitalize' }}>{entityClusterPopup.kind} Cluster #{entityClusterPopup.item.id} Details</h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => downloadJson(entityClusterPopup.item, `${entityClusterPopup.kind}_cluster_${entityClusterPopup.item.id}.json`)} style={btn('#2a6cff')}>Download JSON</button>
+                <button onClick={() => setEntityClusterPopup(null)} style={{ ...btn('#273e6c'), padding: '6px 10px' }}>Close</button>
+              </div>
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Cluster ID:</strong> {entityClusterPopup.item.id}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Label:</strong> {entityClusterPopup.item.feature || entityClusterPopup.item.pattern || entityClusterPopup.item.family || 'n/a'}</span>
+              <span style={{ fontSize: 12, padding: '4px 9px', border: '1px solid #35528a', borderRadius: 999, color: '#d4e3ff' }}><strong>Size:</strong> {entityClusterPopup.item.size}</span>
+            </div>
+            <div style={{ marginTop: 10, color: '#c8d7f8', fontSize: 13, lineHeight: 1.55 }}>
+              <p><strong>What this does:</strong> Detailed drill-down for the selected {entityClusterPopup.kind} cluster.</p>
+              <p><strong>Technical method:</strong> Clustered from current dataset and filtered map state (top/all/search aware).</p>
+              <p><strong>Deterministic vs Non-deterministic:</strong> Hybrid (deterministic grouping + semantic intent framing).</p>
+              <p><strong>Stakeholder value:</strong> Quickly inspect cluster composition and download evidence for reviews.</p>
+            </div>
+            <div style={{ marginTop: 10, maxHeight: '46vh', overflow: 'auto', border: '1px solid #2a3b62', borderRadius: 10 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ color: '#9fb2df', position: 'sticky', top: 0, background: '#101a30' }}>
+                    <th style={th}>Entity</th><th style={th}>ID</th><th style={th}>Name/Pattern</th><th style={th}>Context</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entityClusterPopup.kind === 'requirement' && (entityClusterPopup.item.rows || []).map((r: any) => (
+                    <tr key={r.requirement_id}><td style={td}>Requirement</td><td style={td}>{r.requirement_id}</td><td style={td}>{r.requirement_name}</td><td style={td}>{(r.tags || []).join(', ')}</td></tr>
+                  ))}
+                  {entityClusterPopup.kind === 'defect' && (entityClusterPopup.item.rows || []).map((d: any) => (
+                    <tr key={d.defect_id}><td style={td}>Defect</td><td style={td}>{d.defect_id}</td><td style={td}>{d.title}</td><td style={td}>{d.severity}/{d.status}</td></tr>
+                  ))}
+                  {entityClusterPopup.kind === 'unified' && (
+                    <tr>
+                      <td style={td}>Unified Feature</td><td style={td}>{entityClusterPopup.item.feature}</td><td style={td}>Requirements: {entityClusterPopup.item.requirements}</td><td style={td}>Tests: {entityClusterPopup.item.tests} · Defects: {entityClusterPopup.item.defects}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

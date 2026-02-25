@@ -86,12 +86,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 12869,
+                  "duration": 9039,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-02-25T13:54:43.205Z",
+                  "startTime": "2026-02-25T14:05:37.904Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -120,12 +120,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 10034,
+                  "duration": 9067,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-02-25T13:54:56.221Z",
+                  "startTime": "2026-02-25T14:05:47.089Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -137,15 +137,49 @@
           "file": "app.spec.ts",
           "line": 15,
           "column": 1
+        },
+        {
+          "title": "requirement/defect/unified cluster maps support search, top/all, and details popup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9597,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-02-25T14:05:56.183Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c31ff144dc4fee3acd0a-c5c842dacd050f3c3b1f",
+          "file": "app.spec.ts",
+          "line": 41,
+          "column": 1
         }
       ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-02-25T13:54:40.757Z",
-    "duration": 26145.443,
-    "expected": 2,
+    "startTime": "2026-02-25T14:05:35.508Z",
+    "duration": 30916.472,
+    "expected": 3,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
