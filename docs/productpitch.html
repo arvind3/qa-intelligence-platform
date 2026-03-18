@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Pitch | QualiGraph</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#06132a;
+      --bg2:#0b1d3e;
+      --bg3:#123265;
+      --card:#0f2142cc;
+      --card-strong:#122a52;
+      --line:#2c4f86;
+      --text:#ebf3ff;
+      --muted:#a9c1ea;
+      --accent:#7dd3fc;
+      --accent2:#34d399;
+      --accent3:#f59e0b;
+      --danger:#fb7185;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:Manrope,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(52,211,153,.18), transparent 28%),
+        radial-gradient(circle at 85% 12%, rgba(125,211,252,.14), transparent 28%),
+        linear-gradient(180deg, var(--bg3), var(--bg));
+    }
+    h1,h2,h3{font-family:Fraunces,serif}
+    .glass{
+      background:linear-gradient(180deg, rgba(17,36,70,.88), rgba(10,24,49,.82));
+      border:1px solid rgba(95,136,201,.32);
+      box-shadow:0 18px 60px rgba(1,8,22,.28);
+      backdrop-filter:blur(12px);
+    }
+    .metric-bar span{
+      display:block;
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, var(--accent), var(--accent2));
+    }
+    .chip{
+      border:1px solid rgba(125,211,252,.25);
+      background:rgba(125,211,252,.08);
+    }
+    .flow-line{
+      background:linear-gradient(90deg, rgba(125,211,252,.18), rgba(52,211,153,.28));
+    }
+    .hero-grid{
+      background-image:
+        linear-gradient(rgba(169,193,234,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(169,193,234,.08) 1px, transparent 1px);
+      background-size:32px 32px;
+      mask-image:linear-gradient(180deg, rgba(0,0,0,.85), transparent);
+    }
+  </style>
+</head>
+<body>
+  <div class="hero-grid absolute inset-x-0 top-0 h-[34rem] pointer-events-none"></div>
+  <main class="relative max-w-7xl mx-auto px-5 py-8 md:px-8 md:py-12">
+    <nav class="flex flex-wrap items-center gap-3 text-sm text-[var(--muted)] mb-8">
+      <a href="index.html" class="underline underline-offset-4">Docs Hub</a>
+      <span>/</span>
+      <a href="product.html" class="underline underline-offset-4">Product Perspective</a>
+      <span>/</span>
+      <span class="text-white">Product Pitch</span>
+    </nav>
+
+    <section class="grid lg:grid-cols-[1.1fr_.9fr] gap-8 items-start mb-10">
+      <div class="space-y-6">
+        <div class="chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-sky-200">
+          QualiGraph
+          <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+          Browser-first product pitch
+        </div>
+        <div>
+          <h1 class="text-5xl md:text-7xl leading-none mb-4">GenAI Quality Engine for Product Delivery</h1>
+          <p class="text-lg md:text-2xl text-sky-100 max-w-3xl">Browser-first. Privacy-first. Zero API cost with local AI.</p>
+        </div>
+        <p class="text-base md:text-lg text-[var(--muted)] max-w-3xl">
+          QualiGraph turns fragmented testing and delivery data into actionable intelligence without forcing data migration,
+          external APIs, or cloud dependency. It gives enterprise teams the speed of local analytics with the rigor of a unified quality graph.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="#solution" class="rounded-full bg-sky-300 text-slate-950 px-5 py-3 font-semibold">See the solution</a>
+          <a href="#differentiators" class="rounded-full border border-[var(--line)] px-5 py-3 font-semibold text-sky-100">Compare differentiation</a>
+        </div>
+        <div class="grid sm:grid-cols-3 gap-4 pt-3">
+          <div class="glass rounded-2xl p-4">
+            <p class="text-sm text-[var(--muted)]">Data movement</p>
+            <p class="text-3xl font-extrabold mt-2">0</p>
+            <p class="text-sm text-sky-100 mt-2">No mandatory cloud upload</p>
+          </div>
+          <div class="glass rounded-2xl p-4">
+            <p class="text-sm text-[var(--muted)]">API billing</p>
+            <p class="text-3xl font-extrabold mt-2">$0</p>
+            <p class="text-sm text-sky-100 mt-2">Local AI processing model</p>
+          </div>
+          <div class="glass rounded-2xl p-4">
+            <p class="text-sm text-[var(--muted)]">Time to insight</p>
+            <p class="text-3xl font-extrabold mt-2">Instant</p>
+            <p class="text-sm text-sky-100 mt-2">Interactive analytics in browser</p>
+          </div>
+        </div>
+      </div>
+
+      <aside class="glass rounded-[2rem] p-6 md:p-7 overflow-hidden">
+        <div class="flex items-center justify-between gap-4 mb-5">
+          <div>
+            <p class="text-xs uppercase tracking-[0.24em] text-sky-200">Executive snapshot</p>
+            <h2 class="text-3xl mt-2">Why this product wins</h2>
+          </div>
+          <div class="h-14 w-14 rounded-2xl bg-sky-300/12 border border-sky-200/20 flex items-center justify-center text-sky-200 font-extrabold">QG</div>
+        </div>
+        <div class="space-y-5">
+          <div>
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-[var(--muted)]">Privacy confidence</span>
+              <span>98%</span>
+            </div>
+            <div class="metric-bar h-3 rounded-full bg-slate-950/50"><span style="width:98%"></span></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-[var(--muted)]">Integration drag removed</span>
+              <span>86%</span>
+            </div>
+            <div class="metric-bar h-3 rounded-full bg-slate-950/50"><span style="width:86%"></span></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-[var(--muted)]">Operational cost efficiency</span>
+              <span>92%</span>
+            </div>
+            <div class="metric-bar h-3 rounded-full bg-slate-950/50"><span style="width:92%"></span></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-3 mt-7 items-end">
+          <div class="rounded-t-2xl bg-rose-400/70 h-20 flex items-end justify-center pb-2 text-xs font-semibold text-slate-950">Siloed</div>
+          <div class="rounded-t-2xl bg-amber-300/80 h-28 flex items-end justify-center pb-2 text-xs font-semibold text-slate-950">Mapped</div>
+          <div class="rounded-t-2xl bg-sky-300/85 h-40 flex items-end justify-center pb-2 text-xs font-semibold text-slate-950">Unified</div>
+          <div class="rounded-t-2xl bg-emerald-300/85 h-52 flex items-end justify-center pb-2 text-xs font-semibold text-slate-950">Actionable</div>
+        </div>
+        <p class="text-sm text-[var(--muted)] mt-3">QualiGraph compresses the journey from disconnected signals to AI-guided action.</p>
+      </aside>
+    </section>
+
+    <section class="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-14">
+      <div class="glass rounded-2xl p-5">
+        <p class="text-sm text-[var(--muted)] mb-2">Platforms addressed</p>
+        <h3 class="text-2xl">Azure DevOps, HP ALM, ServiceNow, custom QA stacks</h3>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <p class="text-sm text-[var(--muted)] mb-2">Deployment stance</p>
+        <h3 class="text-2xl">Enterprise-ready without backend dependency</h3>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <p class="text-sm text-[var(--muted)] mb-2">Decision support</p>
+        <h3 class="text-2xl">Risk, redundancy, coverage, and anomaly visibility</h3>
+      </div>
+      <div class="glass rounded-2xl p-5">
+        <p class="text-sm text-[var(--muted)] mb-2">Commercial posture</p>
+        <h3 class="text-2xl">Low-friction product entry with consulting upside</h3>
+      </div>
+    </section>
+
+    <section id="problem" class="grid lg:grid-cols-[.92fr_1.08fr] gap-6 mb-14">
+      <div class="glass rounded-[2rem] p-7">
+        <p class="text-xs uppercase tracking-[0.24em] text-rose-200">The problem</p>
+        <h2 class="text-4xl mt-3 mb-4">Delivery intelligence is trapped in disconnected systems</h2>
+        <p class="text-[var(--muted)] leading-7">
+          Enterprise teams rely on multiple SaaS and legacy platforms, but intelligence rarely travels with the data.
+          AI initiatives stall because integration is expensive, data movement is risky, and platform-native analytics stop at surface-level reporting.
+        </p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="rounded-2xl border border-rose-300/20 bg-rose-300/8 p-5">
+          <h3 class="text-xl">Fragmented signal chain</h3>
+          <ul class="mt-4 space-y-3 text-[var(--muted)]">
+            <li>Data is siloed across testing, execution, and defect systems</li>
+            <li>Teams cannot correlate quality signals end to end</li>
+            <li>Decision-makers wait on manual synthesis</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl border border-rose-300/20 bg-rose-300/8 p-5">
+          <h3 class="text-xl">AI adoption blockers</h3>
+          <ul class="mt-4 space-y-3 text-[var(--muted)]">
+            <li>Sensitive data cannot be pushed to external models freely</li>
+            <li>SaaS tools do not expose enough ML control for enterprise use</li>
+            <li>Integration programs are slow and expensive</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl border border-rose-300/20 bg-rose-300/8 p-5 md:col-span-2">
+          <p class="text-sm uppercase tracking-[0.2em] text-rose-100">Result</p>
+          <p class="text-2xl mt-3">Organizations struggle to convert quality data into real-time, decision-grade intelligence.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="solution" class="glass rounded-[2rem] p-7 md:p-9 mb-14">
+      <div class="max-w-4xl">
+        <p class="text-xs uppercase tracking-[0.24em] text-emerald-200">The solution</p>
+        <h2 class="text-4xl mt-3 mb-4">A universal quality intelligence engine that runs where the data already is</h2>
+        <p class="text-[var(--muted)] text-lg leading-8">
+          QualiGraph ingests quality signals from any enterprise toolchain, normalizes them into a unified analytical schema,
+          and applies machine learning plus generative AI locally in the browser. The outcome is immediate insight without cloud lock-in.
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-4 gap-4 mt-8">
+        <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+          <p class="text-sm text-sky-200">1. Ingest</p>
+          <h3 class="text-2xl mt-2">Connect any platform</h3>
+          <p class="text-[var(--muted)] mt-3">Flexible adapters for Azure DevOps, HP ALM, ServiceNow, and custom systems.</p>
+        </div>
+        <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+          <p class="text-sm text-sky-200">2. Normalize</p>
+          <h3 class="text-2xl mt-2">Build the quality graph</h3>
+          <p class="text-[var(--muted)] mt-3">A single logical model for tests, defects, requirements, and execution signals.</p>
+        </div>
+        <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+          <p class="text-sm text-sky-200">3. Analyze</p>
+          <h3 class="text-2xl mt-2">Detect patterns instantly</h3>
+          <p class="text-[var(--muted)] mt-3">Clustering, redundancy detection, anomaly surfacing, and AI-guided prioritization.</p>
+        </div>
+        <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+          <p class="text-sm text-sky-200">4. Act</p>
+          <h3 class="text-2xl mt-2">Drive better release decisions</h3>
+          <p class="text-[var(--muted)] mt-3">Actionable recommendations without external API cost or integration drag.</p>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-[1.1fr_.9fr] gap-6 mt-8">
+        <div class="rounded-[1.5rem] border border-[var(--line)] p-6 bg-slate-950/25">
+          <h3 class="text-2xl mb-5">Product flow graphic</h3>
+          <div class="space-y-4">
+            <div class="grid grid-cols-[160px_1fr] gap-4 items-center">
+              <div class="rounded-2xl bg-[var(--card-strong)] px-4 py-4 font-semibold">Source systems</div>
+              <div class="flow-line rounded-full h-3 relative">
+                <div class="absolute -top-2 right-0 h-7 w-7 rounded-full bg-sky-300 shadow-[0_0_30px_rgba(125,211,252,.6)]"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-[160px_1fr] gap-4 items-center">
+              <div class="rounded-2xl bg-[var(--card-strong)] px-4 py-4 font-semibold">Unified schema</div>
+              <div class="flow-line rounded-full h-3 relative">
+                <div class="absolute -top-2 left-[28%] h-7 w-7 rounded-full bg-emerald-300 shadow-[0_0_30px_rgba(52,211,153,.55)]"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-[160px_1fr] gap-4 items-center">
+              <div class="rounded-2xl bg-[var(--card-strong)] px-4 py-4 font-semibold">Local AI engine</div>
+              <div class="flow-line rounded-full h-3 relative">
+                <div class="absolute -top-2 left-[61%] h-7 w-7 rounded-full bg-amber-300 shadow-[0_0_30px_rgba(245,158,11,.55)]"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-[160px_1fr] gap-4 items-center">
+              <div class="rounded-2xl bg-[var(--card-strong)] px-4 py-4 font-semibold">Action layer</div>
+              <div class="flow-line rounded-full h-3 relative">
+                <div class="absolute -top-2 right-[10%] h-7 w-7 rounded-full bg-rose-300 shadow-[0_0_30px_rgba(251,113,133,.5)]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-[1.5rem] border border-[var(--line)] p-6 bg-slate-950/25">
+          <h3 class="text-2xl mb-5">Value signal dashboard</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="rounded-2xl bg-sky-300/10 border border-sky-200/20 p-4">
+              <p class="text-sm text-sky-100">Real-time risk visibility</p>
+              <p class="text-3xl font-extrabold mt-2">24/7</p>
+            </div>
+            <div class="rounded-2xl bg-emerald-300/10 border border-emerald-200/20 p-4">
+              <p class="text-sm text-emerald-100">Cloud dependency</p>
+              <p class="text-3xl font-extrabold mt-2">None</p>
+            </div>
+            <div class="rounded-2xl bg-amber-300/10 border border-amber-200/20 p-4">
+              <p class="text-sm text-amber-100">Recurring API billing</p>
+              <p class="text-3xl font-extrabold mt-2">Zero</p>
+            </div>
+            <div class="rounded-2xl bg-fuchsia-300/10 border border-fuchsia-200/20 p-4">
+              <p class="text-sm text-fuchsia-100">Adoption posture</p>
+              <p class="text-3xl font-extrabold mt-2">Test drive first</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-[1fr_1fr] gap-6 mb-14">
+      <div class="glass rounded-[2rem] p-7">
+        <p class="text-xs uppercase tracking-[0.24em] text-sky-200">Core capabilities</p>
+        <div class="mt-5 space-y-5">
+          <div>
+            <h3 class="text-2xl">Universal data ingestion</h3>
+            <p class="text-[var(--muted)] mt-2">Works with enterprise systems without depending on platform-native AI or forcing migration.</p>
+          </div>
+          <div>
+            <h3 class="text-2xl">Unified quality graph</h3>
+            <p class="text-[var(--muted)] mt-2">Creates one connected model for cross-platform analytics and relationship-aware insights.</p>
+          </div>
+          <div>
+            <h3 class="text-2xl">Intelligent insight engine</h3>
+            <p class="text-[var(--muted)] mt-2">Clusters, identifies redundancy, detects hidden anomalies, and recommends action paths.</p>
+          </div>
+          <div>
+            <h3 class="text-2xl">Browser-native AI processing</h3>
+            <p class="text-[var(--muted)] mt-2">Uses WASM, WebGPU, and local compute paths for speed without backend infrastructure.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-[2rem] p-7">
+        <p class="text-xs uppercase tracking-[0.24em] text-emerald-200">Privacy-first architecture</p>
+        <h2 class="text-4xl mt-3 mb-5">Enterprise-grade trust by default</h2>
+        <div class="space-y-4">
+          <div class="rounded-2xl bg-emerald-300/10 border border-emerald-200/20 p-4">
+            <h3 class="text-xl">Data stays local</h3>
+            <p class="text-[var(--muted)] mt-2">No mandatory cloud upload and no external API dependency for core insight generation.</p>
+          </div>
+          <div class="rounded-2xl bg-emerald-300/10 border border-emerald-200/20 p-4">
+            <h3 class="text-xl">Compliance posture improves</h3>
+            <p class="text-[var(--muted)] mt-2">No new data residency problems introduced by third-party inference services.</p>
+          </div>
+          <div class="rounded-2xl bg-emerald-300/10 border border-emerald-200/20 p-4">
+            <h3 class="text-xl">Performance remains high</h3>
+            <p class="text-[var(--muted)] mt-2">Local compute removes network latency and scales with enterprise hardware capability.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass rounded-[2rem] p-7 md:p-9 mb-14">
+      <div class="grid lg:grid-cols-[.95fr_1.05fr] gap-8">
+        <div>
+          <p class="text-xs uppercase tracking-[0.24em] text-amber-200">Strategic value</p>
+          <h2 class="text-4xl mt-3 mb-4">A business accelerator for account and delivery leaders</h2>
+          <p class="text-[var(--muted)] text-lg leading-8">
+            QualiGraph creates a low-friction entry point into enterprise accounts while opening follow-on opportunities
+            in QA transformation, DevOps modernization, AI advisory, and delivery optimization.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+            <h3 class="text-xl">New account entry</h3>
+            <p class="text-[var(--muted)] mt-3">A compelling product-led demonstration of measurable value in quality operations.</p>
+          </div>
+          <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+            <h3 class="text-xl">Deeper client penetration</h3>
+            <p class="text-[var(--muted)] mt-3">Unifies data across teams, which naturally expands the engagement surface.</p>
+          </div>
+          <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+            <h3 class="text-xl">Consulting and transformation pull-through</h3>
+            <p class="text-[var(--muted)] mt-3">Insights translate directly into remediation, governance, and modernization work.</p>
+          </div>
+          <div class="rounded-2xl bg-slate-950/30 border border-[var(--line)] p-5">
+            <h3 class="text-xl">Cost-effective internal scaling</h3>
+            <p class="text-[var(--muted)] mt-3">Zero API billing keeps the cost profile favorable for internal and client deployment.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="differentiators" class="mb-14">
+      <div class="glass rounded-[2rem] p-7 md:p-9 overflow-hidden">
+        <p class="text-xs uppercase tracking-[0.24em] text-sky-200">Key differentiators</p>
+        <h2 class="text-4xl mt-3 mb-6">Why QualiGraph stands apart</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] text-left border-separate border-spacing-y-3">
+            <thead class="text-sm uppercase tracking-[0.18em] text-sky-100">
+              <tr>
+                <th class="pb-2">Capability</th>
+                <th class="pb-2">QualiGraph</th>
+                <th class="pb-2">Traditional tools</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="p-4 rounded-l-2xl bg-slate-950/30 border-y border-l border-[var(--line)]">Runs ML and GenAI on SaaS quality data</td>
+                <td class="p-4 bg-emerald-300/12 border-y border-[var(--line)]">Yes, locally in browser</td>
+                <td class="p-4 rounded-r-2xl bg-rose-300/10 border-y border-r border-[var(--line)]">Usually no, or limited vendor-native AI only</td>
+              </tr>
+              <tr>
+                <td class="p-4 rounded-l-2xl bg-slate-950/30 border-y border-l border-[var(--line)]">Data privacy</td>
+                <td class="p-4 bg-emerald-300/12 border-y border-[var(--line)]">Full local-first posture</td>
+                <td class="p-4 rounded-r-2xl bg-rose-300/10 border-y border-r border-[var(--line)]">Often requires external movement or compromise</td>
+              </tr>
+              <tr>
+                <td class="p-4 rounded-l-2xl bg-slate-950/30 border-y border-l border-[var(--line)]">API cost</td>
+                <td class="p-4 bg-emerald-300/12 border-y border-[var(--line)]">Zero recurring AI API billing</td>
+                <td class="p-4 rounded-r-2xl bg-rose-300/10 border-y border-r border-[var(--line)]">Ongoing inference and integration cost</td>
+              </tr>
+              <tr>
+                <td class="p-4 rounded-l-2xl bg-slate-950/30 border-y border-l border-[var(--line)]">Integration effort</td>
+                <td class="p-4 bg-emerald-300/12 border-y border-[var(--line)]">Minimal and test-drive friendly</td>
+                <td class="p-4 rounded-r-2xl bg-rose-300/10 border-y border-r border-[var(--line)]">Long, expensive platform programs</td>
+              </tr>
+              <tr>
+                <td class="p-4 rounded-l-2xl bg-slate-950/30 border-y border-l border-[var(--line)]">Time to insight</td>
+                <td class="p-4 bg-emerald-300/12 border-y border-[var(--line)]">Interactive and immediate</td>
+                <td class="p-4 rounded-r-2xl bg-rose-300/10 border-y border-r border-[var(--line)]">Slow and report-driven</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-[1.06fr_.94fr] gap-6 mb-14">
+      <div class="glass rounded-[2rem] p-7">
+        <p class="text-xs uppercase tracking-[0.24em] text-sky-200">Test drive experience</p>
+        <h2 class="text-4xl mt-3 mb-5">Designed to prove value before the transformation program starts</h2>
+        <div class="space-y-4">
+          <div class="rounded-2xl border border-[var(--line)] bg-slate-950/30 p-5">
+            <h3 class="text-xl">Start immediately</h3>
+            <p class="text-[var(--muted)] mt-2">Upload or connect sample data without standing up a backend platform.</p>
+          </div>
+          <div class="rounded-2xl border border-[var(--line)] bg-slate-950/30 p-5">
+            <h3 class="text-xl">See insight instantly</h3>
+            <p class="text-[var(--muted)] mt-2">Reveal redundancy, risk clusters, and quality trends in a live working experience.</p>
+          </div>
+          <div class="rounded-2xl border border-[var(--line)] bg-slate-950/30 p-5">
+            <h3 class="text-xl">Scale with confidence</h3>
+            <p class="text-[var(--muted)] mt-2">Use the proof point to justify broader enterprise rollout and adjacent service work.</p>
+          </div>
+        </div>
+      </div>
+      <div class="glass rounded-[2rem] p-7">
+        <p class="text-xs uppercase tracking-[0.24em] text-emerald-200">Vision</p>
+        <h2 class="text-4xl mt-3 mb-5">Become the universal intelligence layer for product quality</h2>
+        <ul class="space-y-4 text-[var(--muted)]">
+          <li class="rounded-2xl border border-[var(--line)] bg-slate-950/30 p-5">Understand delivery risk in real time across disconnected systems.</li>
+          <li class="rounded-2xl border border-[var(--line)] bg-slate-950/30 p-5">Optimize testing efficiency and remove waste using local AI.</li>
+          <li class="rounded-2xl border border-[var(--line)] bg-slate-950/30 p-5">Enable faster, evidence-backed release decisions for enterprise delivery leaders.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="glass rounded-[2rem] p-7 md:p-9">
+      <div class="grid lg:grid-cols-[1fr_auto] gap-6 items-center">
+        <div>
+          <p class="text-xs uppercase tracking-[0.24em] text-sky-200">Elevator pitch</p>
+          <p class="text-2xl md:text-3xl leading-relaxed mt-3">
+            QualiGraph is a browser-first, privacy-first GenAI quality engine that transforms fragmented testing data into actionable insights without moving data,
+            without API cost, and without integration complexity.
+          </p>
+        </div>
+        <a href="index.html" class="inline-flex items-center justify-center rounded-full bg-white text-slate-950 px-6 py-3 font-semibold">Return to docs hub</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
